@@ -4,11 +4,11 @@ gunicorn==22.0.0
 psycopg2==2.9.9
 sqlparse==0.5.0
 whitenoise==6.7.0
+djangorestframework
 langchain
 langchain-groq
 groq
-djangorestframework
-opencv-python-headless  # Use this instead of opencv-python
+opencv-python-headless
 mediapipe
 supervision
 inference
