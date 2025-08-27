@@ -1,24 +1,11 @@
 FROM python:3.11-slim
 
-# Install system dependencies required for OpenCV and PostgreSQL
+# Install only essential system dependencies
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libgl1 \
     libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
+    libgl1 \
     libgomp1 \
-    libgstreamer1.0-0 \
-    libgtk-3-0 \
     ffmpeg \
-    libjpeg-dev \
-    libpng-dev \
-    libtiff-dev \
-    libopenblas-dev \
-    gfortran \
-    wget \
-    pkg-config \
     postgresql-client \
     libpq-dev \
     gcc \
