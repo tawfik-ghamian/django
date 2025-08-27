@@ -7,6 +7,7 @@ whitenoise==6.7.0
 langchain
 langchain-groq
 groq
+djangorestframework
 opencv-python-headless  # Use this instead of opencv-python
 mediapipe
 supervision
