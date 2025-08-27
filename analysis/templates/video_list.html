@@ -1,0 +1,16 @@
+<html>
+    <body>
+        <ul>
+            {% for video in videos %}
+                <li>
+                    <video controls>
+                        <source src="{{ video.processed_video.url }}" type="video/mp4">
+                    </video>
+                    <p>id: {{ video.id }}</p>
+                    <!-- <p>Hip-Knee Angle: {{ video.hip_knee_angle }}</p>
+                    <p>Angle Difference: {{ video.angle_difference }}</p> -->
+                </li>
+            {% endfor %}
+        </ul>
+    </body>
+</html>
