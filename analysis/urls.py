@@ -15,10 +15,9 @@
 
 # urls.py - Updated with new endpoint
 from django.urls import path
-from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView, health_basic
+from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView
 
 urlpatterns = [
-    path('', health_basic, name='basic'),
     path('upload/', VideoUploadView.as_view(), name='video-upload'),
     path('processed/<int:pk>/', ProcessedVideoView.as_view(), name='processed-video'),
     path('feedback/<int:pk>/', FeedBackView.as_view(), name='feedback'),

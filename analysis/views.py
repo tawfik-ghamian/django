@@ -525,27 +525,6 @@ from .models import Video
 from .serializer import VideoSerializer
 from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
 import os
-from django.utils import timezone
-from django.http import JsonResponse
-from django.db import connection
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-import time
-import sys
-import django
-
-
-@csrf_exempt
-@require_http_methods(["GET"])
-def health_basic(request):
-    """Basic health check - server is responding"""
-    return JsonResponse({
-        "status": "healthy",
-        "message": "Server is running",
-        "timestamp": time.time(),
-        "django_version": django.get_version(),
-        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    })
 
 class VideoUploadView(generics.CreateAPIView):
     queryset = Video.objects.all()
