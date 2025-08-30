@@ -28,7 +28,7 @@ DEBUG = True
 
 APPEND_SLASH=False
 
-ALLOWED_HOSTS = ["https://server-production-2122.up.railway.app","*"]
+ALLOWED_HOSTS = ["https://server-production-2122.up.railway.app"]
 
 # Media
 
@@ -37,7 +37,7 @@ MEDIA_URL = '/media/'
 
 # FORM SUBMISSION
 # Comment out the following line and place your railway URL, and your production URL in the array.
-CSRF_TRUSTED_ORIGINS = ["https://server-production-2122.up.railway.app","*"]
+CSRF_TRUSTED_ORIGINS = ["https://server-production-2122.up.railway.app"]
 
 # Application definition
 
@@ -54,11 +54,11 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
@@ -87,11 +87,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-os.environ.setdefault("PGDATABASE", "liftoff_dev")
-os.environ.setdefault("PGUSER", "username")
-os.environ.setdefault("PGPASSWORD", "")
-os.environ.setdefault("PGHOST", "localhost")
-os.environ.setdefault("PGPORT", "5432")
+# os.environ.setdefault("PGDATABASE", "liftoff_dev")
+# os.environ.setdefault("PGUSER", "username")
+# os.environ.setdefault("PGPASSWORD", "")
+# os.environ.setdefault("PGHOST", "localhost")
+# os.environ.setdefault("PGPORT", "5432")
 
 
 DATABASES = {
