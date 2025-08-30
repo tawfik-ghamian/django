@@ -30,4 +30,4 @@ EXPOSE $PORT
 # Run migrations, collect static files, and start the server
 CMD python manage.py migrate && \
     python manage.py collectstatic --noinput && \
-    gunicorn mysite.wsgi:application --bind 0.0.0.0:$PORT
+    gunicorn mysite.wsgi:application --bind 0.0.0.0:$PORT   
