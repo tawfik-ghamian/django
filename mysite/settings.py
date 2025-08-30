@@ -28,7 +28,7 @@ DEBUG = True
 
 APPEND_SLASH=False
 
-ALLOWED_HOSTS = ["https://server-production-2122.up.railway.app"]
+ALLOWED_HOSTS = ["server-production-2122.up.railway.app"]
 
 # Media
 
