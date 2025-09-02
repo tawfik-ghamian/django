@@ -677,8 +677,8 @@ class FeedBackView(generics.RetrieveAPIView):
             return Response({"error": "Feedback not available"}, status=status.HTTP_404_NOT_FOUND)
 
 class VideoStatusView(generics.RetrieveAPIView):
-    # queryset = Video.objects.all()
-    # serializer_class = VideoSerializer
+    queryset = Video.objects.all()
+    serializer_class = VideoSerializer
     
     def retrieve(self, request, *args, **kwargs):
         video = self.get_object()

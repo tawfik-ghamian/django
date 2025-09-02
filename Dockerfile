@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     gcc \
+    redis \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

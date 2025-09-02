@@ -4,6 +4,6 @@
         "builder": "RAILPACK"
     },
     "deploy": {
-        "startCommand": "gunicorn mysite.wsgi --bind 0.0.0.0:8000 --timeout 120"
+        "startCommand": "celery -A mysite worker --loglevel=info & python manage.py migrate && gunicorn mysite.wsgi --bind 0.0.0.0:8000 --timeout 120"
     }
 }

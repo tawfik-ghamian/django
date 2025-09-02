@@ -14,3 +14,4 @@ supervision
 inference
 python-dotenv
 numpy
+celery[redis]
