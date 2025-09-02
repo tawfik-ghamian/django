@@ -15,10 +15,6 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-RUN groupadd -r celeryuser && useradd -r -g celeryuser celeryuser
-RUN chown -R celeryuser:celeryuser /app
-USER celeryuser
-
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
