@@ -28,7 +28,7 @@ DEBUG = True
 
 APPEND_SLASH=False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['https://web-production-e39f0.up.railway.app']
 
 # Media
 
