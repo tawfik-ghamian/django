@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY",'')
+SECRET_KEY = os.environ.get("SECRET_KEY",'django-insecure-rc^*w^w&6g9_(uvx#6s*bnt!w)l0rdi%!l7mv#y%uc&x%wo5pk')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -94,17 +94,23 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # os.environ.setdefault("PGPORT", "5432")
 
 
-DATABASES = {
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': os.environ.get("PGDATABASE",''),
+#         'USER': os.environ.get("PGUSER",''),
+#         'PASSWORD': os.environ.get("PGPASSWORD",''),
+#         'HOST': os.environ.get("PGHOST",''),
+#         'PORT': os.environ.get("PGPORT",''),
+#     }
+# }
+
+DATABASES={
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get("PGDATABASE",''),
-        'USER': os.environ.get("PGUSER",''),
-        'PASSWORD': os.environ.get("PGPASSWORD",''),
-        'HOST': os.environ.get("PGHOST",''),
-        'PORT': os.environ.get("PGPORT",''),
+        'ENGINE': 'django.db.backends.sqlite3',  # Use the correct engine for SQLite
+        'NAME': BASE_DIR / 'db.sqlite3',         # Specify the path to your database file
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

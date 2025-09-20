@@ -672,7 +672,7 @@ def process_video(video_id, video_name):
         
         # Run MediaPipe pose estimation
         pose_results = pose.process(image_rgb)
-        print(pose_results)
+        # print(pose_results)
         
         image_rgb.flags.writeable = True
         image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
@@ -692,7 +692,7 @@ def process_video(video_id, video_name):
             # Extract class name
             class_name = results.predictions[0].class_name
             frame_data["class_name"] = class_name
-            print(f"YOLOv8 detected: {class_name}")
+            # print(f"YOLOv8 detected: {class_name}")
             
             # Extract YOLOv8 keypoints
             for keypoint in results.predictions[0].keypoints:
@@ -709,7 +709,7 @@ def process_video(video_id, video_name):
         
         # Process MediaPipe pose results
         if pose_results.pose_landmarks:
-            print("MediaPipe pose detected")
+            # print("MediaPipe pose detected")
             for idx, landmark in enumerate(pose_results.pose_landmarks.landmark):
                 # Convert normalized coordinates to pixel coordinates
                 x = int(landmark.x * frame_width)
@@ -744,7 +744,7 @@ def process_video(video_id, video_name):
         
         # Draw MediaPipe pose landmarks on the annotated image
         if pose_results.pose_landmarks:
-            print("processing")
+            # print("processing")
             mp_drawing.draw_landmarks(
                 annotated_image,
                 pose_results.pose_landmarks,
