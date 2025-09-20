@@ -524,6 +524,7 @@ from .video_processing import process_video
 from .models import Video
 from .serializer import VideoSerializer
 from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
+from django.utils import timezone
 import os
 
 class VideoUploadView(generics.CreateAPIView):

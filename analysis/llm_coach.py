@@ -12,7 +12,7 @@ load_dotenv()
 class TennisCoachAnalyzer:
     def __init__(self):
         self.llm = ChatGroq(
-            model_name="llama3-70b-8192",  # or "mixtral-8x7b-32768"
+            model_name="llama-3.1-8b-instant",  # or "mixtral-8x7b-32768"
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.3,
             max_tokens=500
