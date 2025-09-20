@@ -499,6 +499,112 @@
 
 
 
+# # video_processing.py
+# from inference import get_model
+# import supervision as sv
+# from .models import Video
+# import cv2
+# import json
+# import os
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# def process_video(video_id, video_name):
+#     # Open the video file
+#     video = Video.objects.get(pk=video_id)
+#     cap = cv2.VideoCapture(video.video_file.path)
+    
+#     if not cap.isOpened():
+#         print("Error reading video file")
+#         return
+    
+#     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+#     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#     size = (frame_width, frame_height)
+    
+#     # Load a pre-trained YOLOv8 model
+#     model = get_model(model_id=os.getenv("MODEL_ID"))
+    
+#     # Initialize video writer for saving annotated video
+#     video_output_path = f'{video_name}_processed.mp4'
+#     video_output = cv2.VideoWriter(
+#         video_output_path, 
+#         cv2.VideoWriter_fourcc(*'mp4v'),  # Use 'mp4v' codec for compatibility
+#         cap.get(cv2.CAP_PROP_FPS), 
+#         size
+#     )
+    
+#     # Initialize a dictionary to store all extracted information
+#     video_data = {}
+#     frame_idx = 0
+#     while cap.isOpened():
+#         success, image = cap.read()
+#         if not success:
+#             break
+        
+#         # Run inference on the current frame
+#         results = model.infer(image)[0]
+        
+#         # Extract class name and keypoints for the current frame
+#         frame_data = {
+#             "class_name": None,
+#             "keypoints": []
+#         }
+#         if len(results.predictions) > 0:
+#             # Extract class name
+#             class_name = results.predictions[0].class_name
+#             frame_data["class_name"] = class_name
+#             print(class_name)
+#             # Extract keypoints
+#             for keypoint in results.predictions[0].keypoints:
+#                 x = keypoint.x
+#                 y = keypoint.y
+#                 confidence = keypoint.confidence
+#                 frame_data["keypoints"].append({
+#                     "x": x,
+#                     "y": y,
+#                     "confidence": confidence,
+#                     "keypoint_id": keypoint.class_id,
+#                     "class_name": keypoint.class_name
+#                 })
+#         # Add the frame data to the video data dictionary
+#         video_data[frame_idx] = frame_data
+#         # Load the results into the supervision Detections API
+#         detections = sv.Detections.from_inference(results)
+        
+#         # Create supervision annotators
+#         bounding_box_annotator = sv.BoxAnnotator()
+#         label_annotator = sv.LabelAnnotator()
+        
+#         # Annotate the image with our inference results
+#         annotated_image = bounding_box_annotator.annotate(
+#             scene=image, detections=detections)
+#         annotated_image = label_annotator.annotate(
+#             scene=annotated_image, detections=detections)
+#         # Write the annotated frame to the output video
+#         video_output.write(annotated_image)
+        
+#         # Quit when 'q' key is pressed
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#         # Increment the frame index
+#         frame_idx += 1
+    
+#     # Release the VideoCapture and VideoWriter objects
+#     cap.release()
+#     video_output.release()
+#     cv2.destroyAllWindows()
+    
+#     # Save the extracted data to a JSON file
+#     video_data_path = f"{video_name}_data.json"
+#     with open(video_data_path, "w") as f:
+#         json.dump(video_data, f, indent=4)
+#     print("Video processing completed. Data saved to 'video_data.json'.")
+    
+#     return video_data, video_output_path, video_data_path
+
+
 # video_processing.py
 from inference import get_model
 import supervision as sv
@@ -507,6 +613,8 @@ import cv2
 import json
 import os
 from dotenv import load_dotenv
+import mediapipe as mp
+import numpy as np
 
 load_dotenv()
 
@@ -526,6 +634,20 @@ def process_video(video_id, video_name):
     # Load a pre-trained YOLOv8 model
     model = get_model(model_id=os.getenv("MODEL_ID"))
     
+    # Initialize MediaPipe pose estimation
+    mp_pose = mp.solutions.pose
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    pose = mp_pose.Pose(
+        # static_image_mode=False,
+        # model_complexity=1,
+        # smooth_landmarks=True,
+        # enable_segmentation=False,
+        # smooth_segmentation=True,
+        min_detection_confidence=0.2,
+        min_tracking_confidence=0.2
+    )
+    
     # Initialize video writer for saving annotated video
     video_output_path = f'{video_name}_processed.mp4'
     video_output = cv2.VideoWriter(
@@ -538,25 +660,41 @@ def process_video(video_id, video_name):
     # Initialize a dictionary to store all extracted information
     video_data = {}
     frame_idx = 0
+    
     while cap.isOpened():
         success, image = cap.read()
         if not success:
             break
         
-        # Run inference on the current frame
-        results = model.infer(image)[0]
+        # Convert BGR to RGB for MediaPipe
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_rgb.flags.writeable = False
+        
+        # Run MediaPipe pose estimation
+        pose_results = pose.process(image_rgb)
+        print(pose_results)
+        
+        image_rgb.flags.writeable = True
+        image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+        
+        # Run YOLOv8 inference on the current frame
+        results = model.infer(image_rgb)[0]
         
         # Extract class name and keypoints for the current frame
         frame_data = {
             "class_name": None,
-            "keypoints": []
+            "keypoints": [],
+            "mediapipe_pose_landmarks": []
         }
+        
+        # Process YOLOv8 results
         if len(results.predictions) > 0:
             # Extract class name
             class_name = results.predictions[0].class_name
             frame_data["class_name"] = class_name
-            print(class_name)
-            # Extract keypoints
+            print(f"YOLOv8 detected: {class_name}")
+            
+            # Extract YOLOv8 keypoints
             for keypoint in results.predictions[0].keypoints:
                 x = keypoint.x
                 y = keypoint.y
@@ -568,33 +706,67 @@ def process_video(video_id, video_name):
                     "keypoint_id": keypoint.class_id,
                     "class_name": keypoint.class_name
                 })
+        
+        # Process MediaPipe pose results
+        if pose_results.pose_landmarks:
+            print("MediaPipe pose detected")
+            for idx, landmark in enumerate(pose_results.pose_landmarks.landmark):
+                # Convert normalized coordinates to pixel coordinates
+                x = int(landmark.x * frame_width)
+                y = int(landmark.y * frame_height)
+                z = landmark.z  # Depth coordinate
+                visibility = landmark.visibility
+                
+                frame_data["mediapipe_pose_landmarks"].append({
+                    "landmark_id": idx,
+                    "landmark_name": mp_pose.PoseLandmark(idx).name,
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                    "visibility": visibility
+                })
+        
         # Add the frame data to the video data dictionary
         video_data[frame_idx] = frame_data
-        # Load the results into the supervision Detections API
+        
+        # Load the YOLOv8 results into the supervision Detections API
         detections = sv.Detections.from_inference(results)
         
-        # Create supervision annotators
+        # Create supervision annotators for YOLOv8
         bounding_box_annotator = sv.BoxAnnotator()
         label_annotator = sv.LabelAnnotator()
         
-        # Annotate the image with our inference results
+        # Annotate the image with YOLOv8 inference results
         annotated_image = bounding_box_annotator.annotate(
             scene=image, detections=detections)
         annotated_image = label_annotator.annotate(
             scene=annotated_image, detections=detections)
+        
+        # Draw MediaPipe pose landmarks on the annotated image
+        if pose_results.pose_landmarks:
+            print("processing")
+            mp_drawing.draw_landmarks(
+                annotated_image,
+                pose_results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+            )
+        
         # Write the annotated frame to the output video
         video_output.write(annotated_image)
         
         # Quit when 'q' key is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        
         # Increment the frame index
         frame_idx += 1
     
-    # Release the VideoCapture and VideoWriter objects
+    # Release resources
     cap.release()
     video_output.release()
     cv2.destroyAllWindows()
+    pose.close()
     
     # Save the extracted data to a JSON file
     video_data_path = f"{video_name}_data.json"
