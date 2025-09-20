@@ -29,5 +29,4 @@ RUN mkdir -p /app/media/videos /app/media/processed_videos /app/media/video_data
 EXPOSE $PORT
 
 # Run migrations, collect static files, and start the server
-CMD python manage.py migrate \
-    gunicorn mysite.wsgi:application --bind 0.0.0.0:8000 --log-level info   
+CMD python manage.py migrate    

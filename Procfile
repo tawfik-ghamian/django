@@ -1,2 +1,2 @@
-server:  python manage.py migrate && gunicorn mysite.wsgi:application 
+server: python manage.py migrate 
 worker: celery -A mysite worker --loglevel=info 
