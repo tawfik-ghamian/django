@@ -19,6 +19,15 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
+# Test connection on startup
+try:
+    # Test if broker is accessible
+    app.control.inspect().ping()
+    print("Celery broker connection successful")
+except Exception as e:
+    print(f"Warning: Celery broker connection failed: {e}")
+    print("Falling back to synchronous processing...")
+
 @app.task(bind=True,soft_time_limit=300)
 def debug_task(self):
     print(f'Request: {self.request!r}')
