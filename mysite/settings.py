@@ -156,3 +156,48 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+# Celery Configuration
+CELERY_TASK_SOFT_TIME_LIMIT = 600  # 10 minutes
+CELERY_TASK_TIME_LIMIT = 900       # 15 minutes
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+
+# For Redis broker
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'visibility_timeout': 3600,  # 1 hour
+    'fanout_prefix': True,
+    'fanout_patterns': True
+}
+
+# Task routing for heavy AI workloads
+CELERY_TASK_ROUTES = {
+    'analysis.tasks.process_video_async': {
+        'queue': 'video_processing',
+        'routing_key': 'video_processing'
+    },
+}
+
+# Result backend settings
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL')
+CELERY_RESULT_EXPIRES = 3600  # 1 hour
+
+# Task serialization
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+
+# Timezone
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+# Logging
+CELERY_WORKER_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'
+CELERY_WORKER_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s'
+
+# Security
+CELERY_TASK_ALWAYS_EAGER = True  # Set to True for development/testing

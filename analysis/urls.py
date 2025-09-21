@@ -15,11 +15,13 @@
 
 # urls.py - Updated with new endpoint
 from django.urls import path
-from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView
+from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView, video_status
 
 urlpatterns = [
     path('upload/', VideoUploadView.as_view(), name='video-upload'),
     path('processed/<int:pk>/', ProcessedVideoView.as_view(), name='processed-video'),
     path('feedback/<int:pk>/', FeedBackView.as_view(), name='feedback'),
-    path('status/<int:pk>/', VideoStatusView.as_view(), name='video-status'),  # New endpoint
+    path('status/<int:pk>/', video_status, name='video-status'),  # New endpoint
+    # Legacy compatibility
+    path('video/<int:pk>/', VideoStatusView.as_view(), name='video-detail'),
 ]
