@@ -518,17 +518,17 @@
 
 from rest_framework import generics, status
 from rest_framework.response import Response
-# from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
+from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
 from django.http import FileResponse
 from rest_framework.exceptions import ValidationError
-# from .video_processing import process_video
+from .video_processing import process_video
 from rest_framework.decorators import api_view
 from .models import Video
 from .serializer import VideoSerializer
-from .tasks import process_video_async
+# from .tasks import process_video_async
 # from celery.result import AsyncResult 
-# from django.utils import timezone
-# import os
+from django.utils import timezone
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -536,52 +536,6 @@ logger = logging.getLogger(__name__)
 class VideoUploadView(generics.CreateAPIView):
     queryset = Video.objects.all()
     serializer_class = VideoSerializer
-    
-    def create(self, request, *args, **kwargs):
-        # Validate sport_type is provided
-        sport_type = request.data.get('sport_type')
-        if not sport_type or sport_type not in ['tennis', 'running', 'soccer']:
-            return Response({
-                "error": "sport_type is required and must be one of: tennis, running, soccer"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        # Custom validation
-        video_file = request.FILES['video_file']
-        allowed_types = ['video/mp4', 'video/webm', 'video/avi']
-        
-        if video_file.size > 50 * 1024 * 1024:  # 50MB limit
-            raise ValidationError("Video file size exceeds the limit.")
-        if not video_file.content_type in allowed_types:
-            raise ValidationError("Invalid file type. Allowed types: {}".format(', '.join(allowed_types)))
-        
-        # Save video instance with initial status
-        self.perform_create(serializer)
-        video_instance = serializer.instance
-        video_name = video_file.name.split(".")[0]
-        
-        # Queue the processing task (non-blocking)
-        task = process_video_async.delay(
-            video_instance.id, 
-            video_name, 
-            sport_type
-        )
-        
-        # Store task ID for status tracking
-        video_instance.analysis_status = 'pending'
-        video_instance.save()
-        
-        # Return immediate response
-        return Response({
-            'id': video_instance.id,
-            'task_id': task.id,
-            'sport_type': sport_type,
-            'status': 'queued',
-            'message': 'Video uploaded successfully. Processing started in background.',
-            'status_check_url': f'/api/video/{video_instance.id}/status/'
-        }, status=status.HTTP_202_ACCEPTED)
     
     # def create(self, request, *args, **kwargs):
     #     # Validate sport_type is provided
@@ -603,88 +557,134 @@ class VideoUploadView(generics.CreateAPIView):
     #     if not video_file.content_type in allowed_types:
     #         raise ValidationError("Invalid file type. Allowed types: {}".format(', '.join(allowed_types)))
         
+    #     # Save video instance with initial status
     #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
+    #     video_instance = serializer.instance
     #     video_name = video_file.name.split(".")[0]
         
-    #     # Update status to processing
-    #     serializer.instance.analysis_status = 'processing'
-    #     serializer.instance.save()
+    #     # Queue the processing task (non-blocking)
+    #     task = process_video_async.delay(
+    #         video_instance.id, 
+    #         video_name, 
+    #         sport_type
+    #     )
         
-    #     try:
-    #         # Process the video (pose estimation works for all sports)
-    #         video_data, video_output_path, video_data_path = process_video(serializer.instance.id, video_name)
+    #     # Store task ID for status tracking
+    #     video_instance.analysis_status = 'pending'
+    #     video_instance.save()
+        
+    #     # Return immediate response
+    #     return Response({
+    #         'id': video_instance.id,
+    #         'task_id': task.id,
+    #         'sport_type': sport_type,
+    #         'status': 'queued',
+    #         'message': 'Video uploaded successfully. Processing started in background.',
+    #         'status_check_url': f'/api/video/{video_instance.id}/status/'
+    #     }, status=status.HTTP_202_ACCEPTED)
+    
+    def create(self, request, *args, **kwargs):
+        # Validate sport_type is provided
+        sport_type = request.data.get('sport_type')
+        if not sport_type or sport_type not in ['tennis', 'running', 'soccer']:
+            return Response({
+                "error": "sport_type is required and must be one of: tennis, running, soccer"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Custom validation
+        video_file = request.FILES['video_file']
+        allowed_types = ['video/mp4', 'video/webm', 'video/avi']
+        
+        if video_file.size > 50 * 1024 * 1024:  # 50MB limit
+            raise ValidationError("Video file size exceeds the limit.")
+        if not video_file.content_type in allowed_types:
+            raise ValidationError("Invalid file type. Allowed types: {}".format(', '.join(allowed_types)))
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        video_name = video_file.name.split(".")[0]
+        
+        # Update status to processing
+        serializer.instance.analysis_status = 'processing'
+        serializer.instance.save()
+        
+        try:
+            # Process the video (pose estimation works for all sports)
+            video_data, video_output_path, video_data_path = process_video(serializer.instance.id, video_name)
             
-    #         # Save processed files
-    #         serializer.instance.processed_video.save(f'{video_name}_processed.mp4', open(video_output_path, 'rb'))
-    #         serializer.instance.video_data_json.save(f'{video_name}_data.json', open(video_data_path, 'rb'))
+            # Save processed files
+            serializer.instance.processed_video.save(f'{video_name}_processed.mp4', open(video_output_path, 'rb'))
+            serializer.instance.video_data_json.save(f'{video_name}_data.json', open(video_data_path, 'rb'))
             
-    #         # Multi-sport analysis using user-specified sport type
-    #         multi_sport_analyzer = SimplifiedMultiSportCoachAnalyzer()
-    #         analysis_result = multi_sport_analyzer.analyze_video(sport_type, video_data)
+            # Multi-sport analysis using user-specified sport type
+            multi_sport_analyzer = SimplifiedMultiSportCoachAnalyzer()
+            analysis_result = multi_sport_analyzer.analyze_video(sport_type, video_data)
             
-    #         # Update video instance with analysis results
-    #         serializer.instance.analysis_status = analysis_result['analysis_status']
-    #         serializer.instance.frames_analyzed = analysis_result['frames_analyzed']
-    #         serializer.instance.feedback = analysis_result['feedback']
-    #         serializer.instance.processed_at = timezone.now()
+            # Update video instance with analysis results
+            serializer.instance.analysis_status = analysis_result['analysis_status']
+            serializer.instance.frames_analyzed = analysis_result['frames_analyzed']
+            serializer.instance.feedback = analysis_result['feedback']
+            serializer.instance.processed_at = timezone.now()
             
-    #         # Add tennis-specific data if available
-    #         if analysis_result['analysis_status'] == 'complete':
-    #             serializer.instance.overall_score = analysis_result['overall_score']
-    #             serializer.instance.detailed_scores = analysis_result['detailed_scores']
-    #             serializer.instance.shot_types_detected = analysis_result.get('shot_types_detected', [])
-    #         else:
-    #             # Add training data for other sports
-    #             serializer.instance.training_progress = analysis_result.get('training_progress')
-    #             serializer.instance.estimated_completion = analysis_result.get('estimated_completion')
-    #             serializer.instance.basic_metrics = analysis_result.get('basic_metrics')
+            # Add tennis-specific data if available
+            if analysis_result['analysis_status'] == 'complete':
+                serializer.instance.overall_score = analysis_result['overall_score']
+                serializer.instance.detailed_scores = analysis_result['detailed_scores']
+                serializer.instance.shot_types_detected = analysis_result.get('shot_types_detected', [])
+            else:
+                # Add training data for other sports
+                serializer.instance.training_progress = analysis_result.get('training_progress')
+                serializer.instance.estimated_completion = analysis_result.get('estimated_completion')
+                serializer.instance.basic_metrics = analysis_result.get('basic_metrics')
             
-    #         serializer.instance.save()
+            serializer.instance.save()
             
-    #         # Clean up temporary files
-    #         os.remove(video_output_path)
-    #         os.remove(video_data_path)
+            # Clean up temporary files
+            os.remove(video_output_path)
+            os.remove(video_data_path)
             
-    #         # Prepare response based on analysis type
-    #         response_data = {
-    #             "id": serializer.instance.id,
-    #             "sport_type": sport_type,
-    #             "analysis_status": analysis_result['analysis_status'],
-    #             "frames_analyzed": analysis_result['frames_analyzed'],
-    #             "total_frames": analysis_result.get('total_frames', len(video_data)),
-    #             "processing_complete": analysis_result['processing_complete']
-    #         }
+            # Prepare response based on analysis type
+            response_data = {
+                "id": serializer.instance.id,
+                "sport_type": sport_type,
+                "analysis_status": analysis_result['analysis_status'],
+                "frames_analyzed": analysis_result['frames_analyzed'],
+                "total_frames": analysis_result.get('total_frames', len(video_data)),
+                "processing_complete": analysis_result['processing_complete']
+            }
             
-    #         # Add detailed analysis for tennis
-    #         if analysis_result['analysis_status'] == 'complete':
-    #             response_data.update({
-    #                 "overall_score": analysis_result['overall_score'],
-    #                 "detailed_scores": analysis_result['detailed_scores'],
-    #                 "shot_types_detected": analysis_result.get('shot_types_detected', [])
-    #             })
+            # Add detailed analysis for tennis
+            if analysis_result['analysis_status'] == 'complete':
+                response_data.update({
+                    "overall_score": analysis_result['overall_score'],
+                    "detailed_scores": analysis_result['detailed_scores'],
+                    "shot_types_detected": analysis_result.get('shot_types_detected', [])
+                })
             
-    #         # Add training info for sports under development
-    #         elif analysis_result['analysis_status'] == 'under_training':
-    #             response_data.update({
-    #                 "training_progress": analysis_result.get('training_progress'),
-    #                 "estimated_completion": analysis_result.get('estimated_completion'),
-    #                 "basic_metrics": analysis_result.get('basic_metrics', {})
-    #             })
+            # Add training info for sports under development
+            elif analysis_result['analysis_status'] == 'under_training':
+                response_data.update({
+                    "training_progress": analysis_result.get('training_progress'),
+                    "estimated_completion": analysis_result.get('estimated_completion'),
+                    "basic_metrics": analysis_result.get('basic_metrics', {})
+                })
             
-    #         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
+            return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
             
-    #     except Exception as e:
-    #         # Update status to failed
-    #         serializer.instance.analysis_status = 'failed'
-    #         serializer.instance.feedback = f"Processing failed: {str(e)}"
-    #         serializer.instance.save()
+        except Exception as e:
+            # Update status to failed
+            serializer.instance.analysis_status = 'failed'
+            serializer.instance.feedback = f"Processing failed: {str(e)}"
+            serializer.instance.save()
             
-    #         return Response({
-    #             "error": "Video processing failed",
-    #             "details": str(e),
-    #             "id": serializer.instance.id
-    #         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "error": "Video processing failed",
+                "details": str(e),
+                "id": serializer.instance.id
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ProcessedVideoView(generics.RetrieveAPIView):
     queryset = Video.objects.all()

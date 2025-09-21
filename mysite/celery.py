@@ -6,8 +6,8 @@ from celery import Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 
 app = Celery('tasks',
-             backend=os.getenv('REDIS_URL'),
-             broker=os.getenv('REDIS_URL')
+             backend=os.environ.get('REDIS_URL'),
+             broker=os.environ.get('REDIS_URL')
              )
 
 # Using a string here means the worker doesn't have to serialize
@@ -28,6 +28,6 @@ except Exception as e:
     print(f"Warning: Celery broker connection failed: {e}")
     print("Falling back to synchronous processing...")
 
-@app.task(bind=True,soft_time_limit=300)
+@app.task(bind=True,soft_time_limit=900)
 def debug_task(self):
     print(f'Request: {self.request!r}')
