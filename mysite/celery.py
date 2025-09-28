@@ -28,6 +28,6 @@ except Exception as e:
     print(f"Warning: Celery broker connection failed: {e}")
     print("Falling back to synchronous processing...")
 
-@app.task(bind=True,soft_time_limit=900)
+@app.task(bind=True,soft_time_limit=1200)
 def debug_task(self):
     print(f'Request: {self.request!r}')

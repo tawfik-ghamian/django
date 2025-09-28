@@ -664,8 +664,9 @@ def process_video(video_id, video_name):
     while cap.isOpened():
         success, image = cap.read()
         if not success:
+            print("image not read ")
             break
-        
+        print("image read")
         # Convert BGR to RGB for MediaPipe
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_rgb.flags.writeable = False

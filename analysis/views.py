@@ -622,7 +622,7 @@ class VideoUploadView(generics.CreateAPIView):
             # Multi-sport analysis using user-specified sport type
             multi_sport_analyzer = SimplifiedMultiSportCoachAnalyzer()
             analysis_result = multi_sport_analyzer.analyze_video(sport_type, video_data)
-            
+            print("video analysis done")
             # Update video instance with analysis results
             serializer.instance.analysis_status = analysis_result['analysis_status']
             serializer.instance.frames_analyzed = analysis_result['frames_analyzed']
@@ -641,7 +641,7 @@ class VideoUploadView(generics.CreateAPIView):
                 serializer.instance.basic_metrics = analysis_result.get('basic_metrics')
             
             serializer.instance.save()
-            
+            print("instance saved")
             # Clean up temporary files
             os.remove(video_output_path)
             os.remove(video_data_path)
