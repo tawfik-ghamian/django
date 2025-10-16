@@ -613,10 +613,13 @@ import cv2
 import json
 import os
 from dotenv import load_dotenv
+import logging
 import mediapipe as mp
 import numpy as np
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 def process_video(video_id, video_name):
     # Open the video file
@@ -624,15 +627,21 @@ def process_video(video_id, video_name):
     cap = cv2.VideoCapture(video.video_file.path)
     
     if not cap.isOpened():
+        logger.error(f"Error reading video file for video ID: {video_id}")
         print("Error reading video file")
         return
     
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
     size = (frame_width, frame_height)
+    
+    logger.info(f"Processing video {video_id}: {frame_width}x{frame_height}, {fps}fps, {total_frames} frames")
     
     # Load a pre-trained YOLOv8 model
     model = get_model(model_id=os.getenv("MODEL_ID"))
+    logger.info(f"YOLO model loaded: {os.getenv('MODEL_ID')}")
     
     # Initialize MediaPipe pose estimation
     mp_pose = mp.solutions.pose
@@ -647,19 +656,22 @@ def process_video(video_id, video_name):
         min_detection_confidence=0.2,
         min_tracking_confidence=0.2
     )
+    logger.info("MediaPipe Pose initialized")
     
     # Initialize video writer for saving annotated video
     video_output_path = f'{video_name}_processed.mp4'
     video_output = cv2.VideoWriter(
         video_output_path, 
         cv2.VideoWriter_fourcc(*'mp4v'),  # Use 'mp4v' codec for compatibility
-        cap.get(cv2.CAP_PROP_FPS), 
+        fps, 
         size
     )
     
     # Initialize a dictionary to store all extracted information
     video_data = {}
     frame_idx = 0
+    yolo_detections = 0
+    mediapipe_detections = 0
     
     while cap.isOpened():
         success, image = cap.read()
@@ -690,6 +702,7 @@ def process_video(video_id, video_name):
         
         # Process YOLOv8 results
         if len(results.predictions) > 0:
+            yolo_detections += 1
             # Extract class name
             class_name = results.predictions[0].class_name
             frame_data["class_name"] = class_name
@@ -710,6 +723,7 @@ def process_video(video_id, video_name):
         
         # Process MediaPipe pose results
         if pose_results.pose_landmarks:
+            mediapipe_detections += 1
             # print("MediaPipe pose detected")
             for idx, landmark in enumerate(pose_results.pose_landmarks.landmark):
                 # Convert normalized coordinates to pixel coordinates
@@ -762,12 +776,17 @@ def process_video(video_id, video_name):
         
         # Increment the frame index
         frame_idx += 1
+        # Log progress every 30 frames
+        if frame_idx % 30 == 0:
+            logger.info(f"Processed {frame_idx}/{total_frames} frames")
     
     # Release resources
     cap.release()
     video_output.release()
     cv2.destroyAllWindows()
     pose.close()
+    
+    logger.info(f"Video processing complete: {frame_idx} frames, YOLO: {yolo_detections}, MediaPipe: {mediapipe_detections}")
     
     # Save the extracted data to a JSON file
     video_data_path = f"{video_name}_data.json"

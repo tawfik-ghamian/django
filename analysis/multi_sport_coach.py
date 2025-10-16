@@ -369,14 +369,19 @@
 
 
 from .llm_coach import TennisCoachAnalyzer
+from .fallback_analyzer import FallbackBiomechanicalAnalyzer
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
+import logging
 import os
 import json
+
+logger = logging.getLogger(__name__)
 
 class SimplifiedMultiSportCoachAnalyzer:
     def __init__(self):
         self.tennis_analyzer = TennisCoachAnalyzer()
+        self.fallback_analyzer = FallbackBiomechanicalAnalyzer()
         self.llm = ChatGroq(
             model_name="llama3-70b-8192",
             groq_api_key=os.getenv("GROQ_API_KEY"),
@@ -387,6 +392,33 @@ class SimplifiedMultiSportCoachAnalyzer:
     def analyze_video(self, sport_type: str, video_data: dict) -> dict:
         """Main entry point for multi-sport analysis - sport type provided by user"""
         
+        # Check if YOLO detected any shots
+        yolo_detections = sum(1 for frame_data in video_data.values() if frame_data.get('class_name'))
+        mediapipe_detections = sum(1 for frame_data in video_data.values() if frame_data.get('mediapipe_pose_landmarks'))
+        
+        logger.info(f"YOLO detections: {yolo_detections}, MediaPipe detections: {mediapipe_detections}")
+        
+        # ============ ADD THIS FALLBACK LOGIC ============
+        # If YOLO didn't detect any shots but MediaPipe has pose data, use fallback
+        if yolo_detections == 0 and mediapipe_detections > 0:
+            logger.warning(f"No YOLO detections found for {sport_type}. Using fallback biomechanical analysis.")
+            return self.fallback_analyzer.analyze_video_fallback(video_data, sport_type)
+        
+        # If neither YOLO nor MediaPipe detected anything
+        if yolo_detections == 0 and mediapipe_detections == 0:
+            logger.error("No detections from YOLO or MediaPipe")
+            return {
+                "sport_type": sport_type,
+                "analysis_status": "failed",
+                "overall_score": None,
+                "detailed_scores": None,
+                "feedback": "Unable to detect any movements in the video. Please ensure proper lighting and full body visibility.",
+                "frames_analyzed": 0,
+                "processing_complete": True,
+                "error": "No pose data detected"
+            }
+        # ============ END FALLBACK LOGIC ============
+        
         # Route to appropriate analyzer based on user-selected sport
         if sport_type == 'tennis':
             return self._analyze_tennis(video_data)
@@ -396,15 +428,26 @@ class SimplifiedMultiSportCoachAnalyzer:
             return self._analyze_soccer_under_training(video_data)
         else:
             # Fallback to tennis if unknown sport
-            return self._analyze_tennis(video_data)
+            return self.fallback_analyzer.analyze_video_fallback(video_data, "unknown sport")
+        
+        # # Route to appropriate analyzer based on user-selected sport
+        # if sport_type == 'tennis':
+        #     return self._analyze_tennis(video_data)
+        # elif sport_type == 'running':
+        #     return self._analyze_running_under_training(video_data)
+        # elif sport_type == 'soccer':
+        #     return self._analyze_soccer_under_training(video_data)
+        # else:
+        #     # Fallback to tennis if unknown sport
+        #     return self._analyze_tennis(video_data)
     
     def _analyze_tennis(self, video_data: dict) -> dict:
         """Full tennis analysis using the detailed tennis analyzer"""
         shot_types = [frame_data.get('class_name', 'unknown') for frame_data in video_data.values() if frame_data.get('class_name')]
-        
+        print("analysing")
         # Use the comprehensive tennis analyzer
         tennis_analysis = self.tennis_analyzer.generate_comprehensive_feedback(video_data, shot_types)
-        
+        print(tennis_analysis)
         return {
             "sport_type": "tennis",
             "analysis_status": "complete",

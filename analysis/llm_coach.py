@@ -157,8 +157,9 @@ class TennisCoachAnalyzer:
         # Analyze keypoints across all frames
         frame_analyses = []
         valid_frames = 0
-        
+        print("getting feedback")
         for frame_idx, frame_data in video_data.items():
+            print("keypoint:")
             if frame_data.get('keypoints'):
                 analysis = self.analyze_keypoints(frame_data)
                 frame_analyses.append({
@@ -167,6 +168,7 @@ class TennisCoachAnalyzer:
                     "analysis": analysis
                 })
                 valid_frames += 1
+        print(str(frame_analyses))
         
         if not frame_analyses:
             return {
@@ -178,13 +180,13 @@ class TennisCoachAnalyzer:
         # Calculate overall scores
         avg_scores = self._calculate_average_scores(frame_analyses)
         overall_score = round(sum(avg_scores.values()) / len(avg_scores), 1)
-        
+        print(str(overall_score))
         # Prepare detailed analysis for LLM
         analysis_summary = self._prepare_analysis_summary(frame_analyses, shot_types, avg_scores)
-        
+        print("prepared summary")
         # Generate LLM feedback
         llm_feedback = self._get_llm_feedback(analysis_summary, overall_score)
-        
+        print("finfish feedback")
         return {
             "overall_score": overall_score,
             "detailed_scores": avg_scores,
@@ -201,13 +203,15 @@ class TennisCoachAnalyzer:
             "body_alignment": [],
             "balance": []
         }
-        
+        print(str(scores))
         for frame_analysis in frame_analyses:
             analysis = frame_analysis["analysis"]
             for metric in scores.keys():
                 if metric in analysis:
                     scores[metric].append(analysis[metric]["score"])
-        
+        print(str(scores))
+        print(str({metric: round(sum(values) / len(values), 1) if values else 0 
+            for metric, values in scores.items()}))
         return {
             metric: round(sum(values) / len(values), 1) if values else 0 
             for metric, values in scores.items()

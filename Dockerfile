@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create necessary directories for media files
-RUN mkdir -p /app/media/videos /app/media/processed_videos /app/media/video_data
+RUN mkdir -p /app/media/videos /app/media/processed_videos /app/media/video_data /app/logs
 
 # Expose port
 EXPOSE $PORT
