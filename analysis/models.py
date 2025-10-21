@@ -179,6 +179,12 @@ class Video(models.Model):
     # Timestamps
     uploaded_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+    task_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        help_text="Celery task ID for async processing"
+    )
 
     class Meta:
         ordering = ['-uploaded_at']
@@ -189,7 +195,7 @@ class Video(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.get_sport_type_display()} - {self.video_file.name}"
+        return f"Video {self.id} - {self.get_sport_type_display()} - {self.video_file.name}"
     
     @property
     def is_tennis_complete(self):

@@ -15,12 +15,23 @@
 
 # urls.py - Updated with new endpoint
 from django.urls import path
-from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView, video_status, retry_video_processing
+from .views import (
+    VideoUploadView, 
+    ProcessedVideoView, 
+    FeedBackView, 
+    VideoStatusView,
+    video_status, 
+    task_status,
+    retry_video_processing
+)
+# from .views import VideoUploadView, ProcessedVideoView, FeedBackView, VideoStatusView, video_status, retry_video_processing
 
 urlpatterns = [
     path('upload/', VideoUploadView.as_view(), name='video-upload'),
     path('processed/<int:pk>/', ProcessedVideoView.as_view(), name='processed-video'),
     path('feedback/<int:pk>/', FeedBackView.as_view(), name='feedback'),
+    # Check task status by task ID (for real-time progress)
+    path('task-status/<str:task_id>/', task_status, name='task-status'),
     path('status/<int:pk>/', video_status, name='video-status'),
     path('retry/<int:pk>/', retry_video_processing, name='retry-processing'),
     path('video/<int:pk>/', VideoStatusView.as_view(), name='video-detail'),
