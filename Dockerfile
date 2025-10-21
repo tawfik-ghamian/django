@@ -25,8 +25,8 @@ COPY . .
 # Create necessary directories for media files
 RUN mkdir -p /app/media/videos /app/media/processed_videos /app/media/video_data /app/logs
 
-# Expose port
-EXPOSE $PORT
-
 # Run migrations, collect static files, and start the server
 CMD python manage.py migrate 
+
+# Expose port
+EXPOSE $PORT
