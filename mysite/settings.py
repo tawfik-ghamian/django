@@ -265,4 +265,5 @@ CELERY_WORKER_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(messa
 CELERY_WORKER_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s'
 
 # Security
-CELERY_TASK_ALWAYS_EAGER = True  # Set to True for development/testing
+CELERY_TASK_ALWAYS_EAGER = False  # Set to True for development/testing
+CELERY_TASK_EAGER_PROPAGATES = False
