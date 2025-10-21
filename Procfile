@@ -1,2 +1,2 @@
-web: python manage.py migrate && gunicorn mysite.wsgi:application --timeout 1200 --workers 2 --max-requests 100 --preload
+web: python manage.py migrate
 worker: celery -A mysite worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
