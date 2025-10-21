@@ -3,7 +3,7 @@ import os
 import json
 from typing import Dict, List, Any
 from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage, SystemMessage
+# from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from dotenv import load_dotenv
 

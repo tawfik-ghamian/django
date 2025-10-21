@@ -163,23 +163,14 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
         'simple': {
             'format': '[{levelname}] {asctime} {message}',
             'style': '{',
         },
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-    },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': 'WARNING',  # Changed from INFO to WARNING
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -187,34 +178,26 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'app.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
+            'maxBytes': 1024 * 1024 * 10,
             'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'errors.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
+            'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'WARNING',  # Changed from INFO
             'propagate': False,
         },
-        'analysis': {  # Your app name
-            'handlers': ['console', 'file', 'error_file'],
-            'level': 'INFO',
+        'analysis': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # Keep detailed logs for your app
             'propagate': False,
         },
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': 'INFO',
+        'level': 'WARNING',  # Changed from INFO
     },
 }
 
