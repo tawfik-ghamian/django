@@ -371,7 +371,7 @@
 from .llm_coach import TennisCoachAnalyzer
 from .fallback_analyzer import FallbackBiomechanicalAnalyzer
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 import logging
 import os
 import json
