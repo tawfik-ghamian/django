@@ -34,7 +34,11 @@
 
 FROM python:3.11-slim
 
-# Install system dependencies
+# Set environment variables to prevent ONNX Runtime executable stack issue
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies including execstack to fix ONNX Runtime
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libgl1 \
@@ -43,6 +47,8 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     gcc \
+    g++ \
+    execstack \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -54,6 +60,12 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+# Fix ONNX Runtime executable stack issue
+# This command removes the executable stack flag from the ONNX Runtime library
+RUN if [ -f /usr/local/lib/python3.11/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-311-x86_64-linux-gnu.so ]; then \
+        execstack -c /usr/local/lib/python3.11/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-311-x86_64-linux-gnu.so; \
+    fi
 
 # Copy application code
 COPY . .
