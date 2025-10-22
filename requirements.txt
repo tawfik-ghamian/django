@@ -11,6 +11,7 @@ groq
 opencv-python-headless
 mediapipe
 supervision
+onnxruntime
 inference
 python-dotenv
 numpy
