@@ -1,6 +1,16 @@
 {
-    "$schema": "https://railway.app/railway.schema.json",
+    "$schema": "https://railway.com/railway.schema.json",
     "build": {
-        "builder": "RAILPACK"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+    },
+    "deploy": {
+    "runtime": "V2",
+    "numReplicas": 1,
+    "startCommand": "python manage.py migrate && gunicorn mysite.wsgi:application --timeout 300 --workers 2 --max-requests 100 --preload --bind 0.0.0.0:$PORT",
+    "sleepApplication": false,
+    "useLegacyStacker": false,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
     }
 }
