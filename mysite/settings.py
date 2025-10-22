@@ -206,36 +206,35 @@ LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
 # ============ END LOGGING CONFIGURATION ============
 
+# Get Redis URL from environment
+REDIS_URL = os.environ.get('REDIS_URL')
 
+if not REDIS_URL:
+    raise EnvironmentError("REDIS_URL environment variable is required")
 
-# Celery Configuration
-CELERY_TASK_SOFT_TIME_LIMIT = 900  # 10 minutes
-CELERY_TASK_TIME_LIMIT = 1200       # 15 minutes
+print(f"📦 Django settings using Redis: {REDIS_URL[:60]}...")
+
+# Celery broker and backend
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+
+# Task configuration
+CELERY_TASK_SOFT_TIME_LIMIT = 7200  # 2 hours
+CELERY_TASK_TIME_LIMIT = 7500
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 
-# For Redis broker
+# Broker transport options
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    'visibility_timeout': 3600,  # 1 hour
-    'fanout_prefix': True,
-    'fanout_patterns': True
-}
-
-# Task routing for heavy AI workloads
-CELERY_TASK_ROUTES = {
-    'analysis.tasks.process_video_async': {
-        'queue': 'video_processing',
-        'routing_key': 'video_processing'
-    },
+    'visibility_timeout': 7200,
+    'socket_keepalive': True,
 }
 
 # Result backend settings
-CELERY_BROKER_URL = os.environ.get('REDIS_URL')
-CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL')
-CELERY_RESULT_EXPIRES = 3600  # 1 hour
+CELERY_RESULT_EXPIRES = 3600
 
-# Task serialization
+# Serialization
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
@@ -244,10 +243,58 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
 
-# Logging
-CELERY_WORKER_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'
-CELERY_WORKER_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s'
-
-# Security
-CELERY_TASK_ALWAYS_EAGER = False  # Set to True for development/testing
+# ⚠️ CRITICAL: Must be False in production!
+CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
+
+# Task routing
+CELERY_TASK_ROUTES = {
+    'analysis.tasks.process_video_async': {
+        'queue': 'video_processing',
+    },
+}
+# ============ END CELERY CONFIGURATION ============
+
+# # Celery Configuration
+# CELERY_TASK_SOFT_TIME_LIMIT = 900  # 10 minutes
+# CELERY_TASK_TIME_LIMIT = 1200       # 15 minutes
+# CELERY_TASK_ACKS_LATE = True
+# CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# CELERY_TASK_REJECT_ON_WORKER_LOST = True
+
+# # For Redis broker
+# CELERY_BROKER_TRANSPORT_OPTIONS = {
+#     'visibility_timeout': 3600,  # 1 hour
+#     'fanout_prefix': True,
+#     'fanout_patterns': True
+# }
+
+# # Task routing for heavy AI workloads
+# CELERY_TASK_ROUTES = {
+#     'analysis.tasks.process_video_async': {
+#         'queue': 'video_processing',
+#         'routing_key': 'video_processing'
+#     },
+# }
+
+# # Result backend settings
+# CELERY_BROKER_URL = os.environ.get('REDIS_URL')
+# CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL')
+# CELERY_RESULT_EXPIRES = 3600  # 1 hour
+
+# # Task serialization
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_ACCEPT_CONTENT = ['json']
+
+# # Timezone
+# CELERY_TIMEZONE = 'UTC'
+# CELERY_ENABLE_UTC = True
+
+# # Logging
+# CELERY_WORKER_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s] %(message)s'
+# CELERY_WORKER_TASK_LOG_FORMAT = '[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s'
+
+# # Security
+# CELERY_TASK_ALWAYS_EAGER = False  # Set to True for development/testing
+# CELERY_TASK_EAGER_PROPAGATES = False

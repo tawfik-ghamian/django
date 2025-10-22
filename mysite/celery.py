@@ -9,16 +9,18 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 redis_url = os.environ.get('REDIS_URL')
 
 if not redis_url:
-    print("❌ ERROR: REDIS_URL environment variable is not set!")
-    redis_url = 'redis://localhost:6379/0'  # Fallback
-    print(f"⚠️ Falling back to: {redis_url}")
+    print("=" * 80)
+    print("❌ CRITICAL ERROR: REDIS_URL not found!")
+    print("=" * 80)
+    raise EnvironmentError("REDIS_URL environment variable is required but not set")
 
 print(f"🔗 Connecting to Redis: {redis_url[:50]}...")
 
-app = Celery('tasks',
-             backend=redis_url,
-             broker=redis_url
-             )
+app = Celery(
+    'mysite',
+    broker=redis_url,
+    backend=redis_url
+)
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
@@ -38,6 +40,6 @@ except Exception as e:
     print(f"Warning: Celery broker connection failed: {e}")
     print("Falling back to synchronous processing...")
 
-@app.task(bind=True,soft_time_limit=1200)
+@app.task(bind=True)
 def debug_task(self):
     print(f'Request: {self.request!r}')
