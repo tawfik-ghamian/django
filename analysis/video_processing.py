@@ -623,13 +623,30 @@ logger = logging.getLogger(__name__)
 
 def process_video(video_id, video_name):
     # Open the video file
-    video = Video.objects.get(pk=video_id)
-    cap = cv2.VideoCapture(video.video_file.path)
+    # video = Video.objects.get(pk=video_id)
+    # cap = cv2.VideoCapture(video.video_file.path)
     
+    # if not cap.isOpened():
+    #     logger.error(f"Error reading video file for video ID: {video_id}")
+    #     print("Error reading video file")
+    #     return
+    
+    video = Video.objects.get(pk=video_id)
+        
+    if not video.video_file:
+        raise ValueError(f"No video file for video {video_id}")
+    
+    video_path = video.video_file.path
+    logger.info(f"📹 Opening: {video_path}")
+    
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"File not found: {video_path}")
+    
+    cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        logger.error(f"Error reading video file for video ID: {video_id}")
-        print("Error reading video file")
-        return
+        raise RuntimeError(f"Could not open: {video_path}")
+    
+    logger.info(f"✅ Video opened successfully")
     
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
