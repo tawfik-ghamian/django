@@ -231,6 +231,7 @@ CELERY_TASK_ROUTES = {
 }
 
 # Result backend settings
+CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL')
 CELERY_RESULT_EXPIRES = 3600  # 1 hour
 
