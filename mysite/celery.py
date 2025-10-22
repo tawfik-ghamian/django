@@ -5,9 +5,19 @@ from celery import Celery
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 
+# Get Redis URL from environment
+redis_url = os.environ.get('REDIS_URL')
+
+if not redis_url:
+    print("❌ ERROR: REDIS_URL environment variable is not set!")
+    redis_url = 'redis://localhost:6379/0'  # Fallback
+    print(f"⚠️ Falling back to: {redis_url}")
+
+print(f"🔗 Connecting to Redis: {redis_url[:50]}...")
+
 app = Celery('tasks',
-             backend=os.environ.get('REDIS_URL'),
-             broker=os.environ.get('REDIS_URL')
+             backend=redis_url,
+             broker=redis_url
              )
 
 # Using a string here means the worker doesn't have to serialize
