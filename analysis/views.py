@@ -516,6 +516,8 @@
 #         return Response(response_data, status=status.HTTP_200_OK)
 
 
+# from .tasks import process_video_async
+# from celery.result import AsyncResult 
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
@@ -528,8 +530,6 @@ from rest_framework.decorators import api_view
 from .models import Video
 from .tasks import process_video_async
 from .serializer import VideoSerializer
-# from .tasks import process_video_async
-# from celery.result import AsyncResult 
 from django.utils import timezone
 import os
 import logging
