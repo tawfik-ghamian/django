@@ -516,6 +516,25 @@
 #         return Response(response_data, status=status.HTTP_200_OK)
 
 
+from rest_framework import generics, status
+from rest_framework.response import Response
+from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from celery.result import AsyncResult
+from rest_framework.exceptions import ValidationError
+from .video_processing import process_video
+from rest_framework.decorators import api_view
+from .models import Video
+from .tasks import process_video_async
+from .serializer import VideoSerializer
+# from .tasks import process_video_async
+# from celery.result import AsyncResult 
+from django.utils import timezone
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # class VideoUploadView(generics.CreateAPIView):
 #     queryset = Video.objects.all()
