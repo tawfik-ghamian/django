@@ -171,9 +171,9 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'WARNING',  # Changed from INFO to WARNING
+            'level': 'INFO',  # Changed from INFO to WARNING
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'verbose',
         },
         'file': {
             'level': 'INFO',
@@ -187,7 +187,17 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
-            'level': 'WARNING',  # Changed from INFO
+            'level': 'INFO',  # Changed from INFO
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',  # Keep SQL queries at WARNING to reduce noise
             'propagate': False,
         },
         'analysis': {
@@ -195,10 +205,20 @@ LOGGING = {
             'level': 'INFO',  # Keep detailed logs for your app
             'propagate': False,
         },
+        'celery': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # ✅ Show celery logs
+            'propagate': False,
+        },
+        'celery.task': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': 'WARNING',  # Changed from INFO
+        'level': 'INFO',  # Changed from INFO
     },
 }
 
