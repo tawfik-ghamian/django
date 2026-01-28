@@ -173,7 +173,7 @@ LOGGING = {
         'console': {
             'level': 'INFO',  # Changed from INFO to WARNING
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'simple',
         },
         'file': {
             'level': 'INFO',
