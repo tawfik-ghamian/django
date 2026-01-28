@@ -621,6 +621,94 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+def verify_media_volume():
+    """
+    Verify that media volume is properly mounted and accessible.
+    Call this when the worker starts.
+    """
+    media_root = os.environ.get('MEDIA_ROOT', '/app/media')
+    
+    logger.info("=" * 60)
+    logger.info("🔍 MEDIA VOLUME VERIFICATION")
+    logger.info("=" * 60)
+    
+    # Check if directory exists
+    if not os.path.exists(media_root):
+        logger.error(f"❌ Media root does not exist: {media_root}")
+        logger.error("   This means the volume is not properly mounted!")
+        logger.error("   Fix: Mount bucket-volume to /app/media in Railway")
+        return False
+    
+    logger.info(f"✅ Media root exists: {media_root}")
+    
+    # Check if directory is writable
+    test_file = os.path.join(media_root, '.volume_test')
+    try:
+        with open(test_file, 'w') as f:
+            f.write('test')
+        os.remove(test_file)
+        logger.info(f"✅ Media root is writable")
+    except Exception as e:
+        logger.error(f"❌ Media root is not writable: {e}")
+        return False
+    
+    # List videos directory
+    videos_dir = os.path.join(media_root, 'videos')
+    if os.path.exists(videos_dir):
+        files = os.listdir(videos_dir)
+        logger.info(f"✅ Videos directory exists with {len(files)} files")
+        if files:
+            logger.info(f"   Sample files: {files[:5]}")
+    else:
+        logger.warning(f"⚠️  Videos directory does not exist yet: {videos_dir}")
+        logger.info("   This is normal if no videos have been uploaded")
+    
+    logger.info("=" * 60)
+    return True
+
+
+def debug_file_access(video_id, video_path):
+    """
+    Debug helper to diagnose file access issues
+    """
+    logger.error("=" * 60)
+    logger.error("🔍 FILE ACCESS DEBUG INFO")
+    logger.error("=" * 60)
+    logger.error(f"Video ID: {video_id}")
+    logger.error(f"Expected path: {video_path}")
+    logger.error(f"File exists: {os.path.exists(video_path)}")
+    
+    # Check directory
+    directory = os.path.dirname(video_path)
+    logger.error(f"Directory: {directory}")
+    logger.error(f"Directory exists: {os.path.exists(directory)}")
+    
+    if os.path.exists(directory):
+        files = os.listdir(directory)
+        logger.error(f"Files in directory ({len(files)}): {files[:10]}")
+    
+    # Check media root
+    from django.conf import settings
+    media_root = settings.MEDIA_ROOT
+    logger.error(f"MEDIA_ROOT setting: {media_root}")
+    logger.error(f"MEDIA_ROOT exists: {os.path.exists(media_root)}")
+    
+    # Check environment
+    logger.error(f"Current working directory: {os.getcwd()}")
+    logger.error(f"User: {os.getenv('USER', 'unknown')}")
+    
+    # List mounted volumes
+    logger.error("Checking /app for mounted volumes...")
+    if os.path.exists('/app'):
+        app_contents = os.listdir('/app')
+        logger.error(f"Contents of /app: {app_contents}")
+        if 'media' in app_contents:
+            media_contents = os.listdir('/app/media')
+            logger.error(f"Contents of /app/media: {media_contents}")
+    
+    logger.error("=" * 60)
+
+
 def process_video(video_id, video_name):
     # Open the video file
     # video = Video.objects.get(pk=video_id)
@@ -631,7 +719,18 @@ def process_video(video_id, video_name):
     #     print("Error reading video file")
     #     return
     
-    video = Video.objects.get(pk=video_id)
+    logger.info(f"🎬 Starting video processing for ID: {video_id}")
+    
+    if not verify_media_volume():
+        raise RuntimeError(
+            "Media volume not properly mounted. "
+            "Please mount bucket-volume to /app/media in both Server and celery-worker services."
+        )
+    
+    try:
+        video = Video.objects.get(pk=video_id)
+    except Video.DoesNotExist:
+        raise ValueError(f"Video with ID {video_id} not found in database")
         
     if not video.video_file:
         raise ValueError(f"No video file for video {video_id}")
@@ -640,7 +739,18 @@ def process_video(video_id, video_name):
     logger.info(f"📹 Opening: {video_path}")
     
     if not os.path.exists(video_path):
-        raise FileNotFoundError(f"File not found: {video_path}")
+        debug_file_access(video_id, video_path)
+        raise FileNotFoundError(
+            f"Video file not found: {video_path}\n"
+            f"This usually means:\n"
+            f"1. The bucket-volume is not mounted to the celery-worker service\n"
+            f"2. The volume mount path doesn't match MEDIA_ROOT\n"
+            f"3. The file was not properly saved by the Server service\n"
+            f"\nFIX: Mount bucket-volume to /app/media in BOTH Server and celery-worker services in Railway"
+        )
+    
+    logger.info(f"✅ Video file found at: {video_path}")
+    logger.info(f"   File size: {os.path.getsize(video_path) / (1024*1024):.2f} MB")
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
