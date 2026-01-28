@@ -626,7 +626,7 @@ def verify_media_volume():
     Verify that media volume is properly mounted and accessible.
     Call this when the worker starts.
     """
-    media_root = os.environ.get('MEDIA_ROOT', '/app/media')
+    media_root = os.environ.get('MEDIA_ROOT', '/app/data')
     
     logger.info("=" * 60)
     logger.info("🔍 MEDIA VOLUME VERIFICATION")
@@ -636,7 +636,7 @@ def verify_media_volume():
     if not os.path.exists(media_root):
         logger.error(f"❌ Media root does not exist: {media_root}")
         logger.error("   This means the volume is not properly mounted!")
-        logger.error("   Fix: Mount bucket-volume to /app/media in Railway")
+        logger.error("   Fix: Mount bucket-volume to /app/data in Railway")
         return False
     
     logger.info(f"✅ Media root exists: {media_root}")
@@ -703,8 +703,8 @@ def debug_file_access(video_id, video_path):
         app_contents = os.listdir('/app')
         logger.error(f"Contents of /app: {app_contents}")
         if 'media' in app_contents:
-            media_contents = os.listdir('/app/media')
-            logger.error(f"Contents of /app/media: {media_contents}")
+            media_contents = os.listdir('/app/data')
+            logger.error(f"Contents of /app/data: {media_contents}")
     
     logger.error("=" * 60)
 
@@ -724,7 +724,7 @@ def process_video(video_id, video_name):
     if not verify_media_volume():
         raise RuntimeError(
             "Media volume not properly mounted. "
-            "Please mount bucket-volume to /app/media in both Server and celery-worker services."
+            "Please mount bucket-volume to /app/data in both Server and celery-worker services."
         )
     
     try:
@@ -746,7 +746,7 @@ def process_video(video_id, video_name):
             f"1. The bucket-volume is not mounted to the celery-worker service\n"
             f"2. The volume mount path doesn't match MEDIA_ROOT\n"
             f"3. The file was not properly saved by the Server service\n"
-            f"\nFIX: Mount bucket-volume to /app/media in BOTH Server and celery-worker services in Railway"
+            f"\nFIX: Mount bucket-volume to /app/data in BOTH Server and celery-worker services in Railway"
         )
     
     logger.info(f"✅ Video file found at: {video_path}")

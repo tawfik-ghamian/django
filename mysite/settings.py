@@ -32,8 +32,8 @@ ALLOWED_HOSTS = ["*"]
 
 # Media
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'data')
+MEDIA_URL = 'app/data/'
 
 # FORM SUBMISSION
 # Comment out the following line and place your railway URL, and your production URL in the array.
