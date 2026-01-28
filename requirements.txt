@@ -17,3 +17,5 @@ python-dotenv
 numpy
 celery
 redis
+django-filter
+inference[transformers]

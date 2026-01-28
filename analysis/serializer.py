@@ -77,3 +77,42 @@ class VideoSerializer(serializers.ModelSerializer):
             'feedback', 'shot_types_detected', 'training_progress',
             'estimated_completion', 'basic_metrics', 'processed_at'
         ]
+
+
+class VideoListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list view - faster performance"""
+    status_display = serializers.SerializerMethodField()
+    duration_seconds = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Video
+        fields = [
+            'id',
+            'sport_type',
+            'analysis_status',
+            'status_display',
+            'uploaded_at',
+            'processed_at',
+            'overall_score',
+            'frames_analyzed',
+            'task_id',
+            'duration_seconds'
+        ]
+        read_only_fields = fields
+    
+    def get_status_display(self, obj):
+        """Human-readable status"""
+        return {
+            'pending': 'Queued',
+            'processing': 'Processing',
+            'complete': 'Completed',
+            'failed': 'Failed',
+            'under_training': '🎓 Training'
+        }.get(obj.analysis_status, obj.analysis_status)
+    
+    def get_duration_seconds(self, obj):
+        """Calculate processing duration"""
+        if obj.processed_at and obj.uploaded_at:
+            delta = obj.processed_at - obj.uploaded_at
+            return int(delta.total_seconds())
+        return None

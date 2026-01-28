@@ -516,25 +516,6 @@
 #         return Response(response_data, status=status.HTTP_200_OK)
 
 
-from rest_framework import generics, status
-from rest_framework.response import Response
-from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
-from django.http import FileResponse
-from django.shortcuts import get_object_or_404
-from celery.result import AsyncResult
-from rest_framework.exceptions import ValidationError
-from .video_processing import process_video
-from rest_framework.decorators import api_view
-from .models import Video
-from .tasks import process_video_async
-from .serializer import VideoSerializer
-# from .tasks import process_video_async
-# from celery.result import AsyncResult 
-from django.utils import timezone
-import os
-import logging
-
-logger = logging.getLogger(__name__)
 
 # class VideoUploadView(generics.CreateAPIView):
 #     queryset = Video.objects.all()
@@ -1155,6 +1136,92 @@ logger = logging.getLogger(__name__)
 #         return video_status(request, kwargs['pk'])
 
 
+from rest_framework import generics, status, filters
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+# from .multi_sport_coach import SimplifiedMultiSportCoachAnalyzer
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from celery.result import AsyncResult
+from rest_framework.exceptions import ValidationError
+from .video_processing import process_video
+from rest_framework.decorators import api_view
+from .models import Video
+from .tasks import process_video_async
+from .serializer import VideoSerializer
+# from .tasks import process_video_async
+# from celery.result import AsyncResult 
+# from django.utils import timezone
+# import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+class VideoPagination(PageNumberPagination):
+    """Custom pagination for video list"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
+    
+class VideoListView(generics.ListAPIView):
+    """
+    Get all videos with filtering and pagination.
+    
+    Query parameters:
+    - sport_type: Filter by sport (tennis, running, soccer)
+    - analysis_status: Filter by status (pending, processing, complete, failed, under_training)
+    - ordering: Sort by field (e.g., -uploaded_at for newest first)
+    - page: Page number
+    - page_size: Items per page (default: 20, max: 100)
+    
+    Example: GET /video/all/?sport_type=tennis&analysis_status=complete&ordering=-uploaded_at
+    """
+    queryset = Video.objects.all()
+    serializer_class = VideoSerializer
+    pagination_class = VideoPagination
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    
+    # Filtering options
+    filterset_fields = ['sport_type', 'analysis_status']
+    
+    # Ordering options
+    ordering_fields = ['uploaded_at', 'processed_at', 'overall_score', 'frames_analyzed']
+    ordering = ['-uploaded_at']  # Default: newest first
+    
+    # Search by video filename
+    search_fields = ['video_file']
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+            
+            # Add summary statistics
+            response.data['summary'] = {
+                'total_videos': queryset.count(),
+                'by_status': {
+                    'pending': queryset.filter(analysis_status='pending').count(),
+                    'processing': queryset.filter(analysis_status='processing').count(),
+                    'complete': queryset.filter(analysis_status='complete').count(),
+                    'failed': queryset.filter(analysis_status='failed').count(),
+                    'under_training': queryset.filter(analysis_status='under_training').count(),
+                },
+                'by_sport': {
+                    'tennis': queryset.filter(sport_type='tennis').count(),
+                    'running': queryset.filter(sport_type='running').count(),
+                    'soccer': queryset.filter(sport_type='soccer').count(),
+                }
+            }
+            
+            return response
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 

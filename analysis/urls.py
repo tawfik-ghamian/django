@@ -19,6 +19,7 @@ from .views import (
     VideoUploadView, 
     ProcessedVideoView, 
     FeedBackView, 
+    VideoListView,
     VideoStatusView,
     video_status, 
     task_status,
@@ -28,6 +29,7 @@ from .views import (
 
 urlpatterns = [
     path('upload/', VideoUploadView.as_view(), name='video-upload'),
+    path('all/', VideoListView.as_view(), name='video-list'),
     path('processed/<int:pk>/', ProcessedVideoView.as_view(), name='processed-video'),
     path('feedback/<int:pk>/', FeedBackView.as_view(), name='feedback'),
     # Check task status by task ID (for real-time progress)

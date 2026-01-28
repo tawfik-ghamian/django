@@ -1,267 +1,267 @@
 # sport_detector.py
-import cv2
-import numpy as np
-from typing import Dict, List, Tuple, Optional
-import os
-from dataclasses import dataclass
+# import cv2
+# import numpy as np
+# from typing import Dict, List, Tuple, Optional
+# import os
+# from dataclasses import dataclass
 
-@dataclass
-class SportDetectionResult:
-    sport_type: str
-    confidence: float
-    reasoning: str
-    detected_objects: List[str]
+# @dataclass
+# class SportDetectionResult:
+#     sport_type: str
+#     confidence: float
+#     reasoning: str
+#     detected_objects: List[str]
 
-class SportDetector:
-    """Detects sport type from video analysis"""
+# class SportDetector:
+#     """Detects sport type from video analysis"""
     
-    def __init__(self):
-        self.sport_keywords = {
-            'tennis': ['racket', 'court', 'net', 'serve', 'forehand', 'backhand'],
-            'running': ['track', 'road', 'trail', 'marathon', 'sprint'],
-            'soccer': ['ball', 'goal', 'field', 'pitch', 'kick', 'dribble']
-        }
+#     def __init__(self):
+#         self.sport_keywords = {
+#             'tennis': ['racket', 'court', 'net', 'serve', 'forehand', 'backhand'],
+#             'running': ['track', 'road', 'trail', 'marathon', 'sprint'],
+#             'soccer': ['ball', 'goal', 'field', 'pitch', 'kick', 'dribble']
+#         }
         
-    def detect_sport_from_video(self, video_path: str, pose_data: Dict) -> SportDetectionResult:
-        """
-        Detect sport type from video analysis and pose data
-        """
-        # Analyze video frames for sport-specific elements
-        sport_indicators = self._analyze_video_content(video_path)
+#     def detect_sport_from_video(self, video_path: str, pose_data: Dict) -> SportDetectionResult:
+#         """
+#         Detect sport type from video analysis and pose data
+#         """
+#         # Analyze video frames for sport-specific elements
+#         sport_indicators = self._analyze_video_content(video_path)
         
-        # Analyze pose patterns
-        pose_indicators = self._analyze_pose_patterns(pose_data)
+#         # Analyze pose patterns
+#         pose_indicators = self._analyze_pose_patterns(pose_data)
         
-        # Combine indicators to determine sport
-        sport_scores = self._calculate_sport_scores(sport_indicators, pose_indicators)
+#         # Combine indicators to determine sport
+#         sport_scores = self._calculate_sport_scores(sport_indicators, pose_indicators)
         
-        # Determine the most likely sport
-        best_sport = max(sport_scores.items(), key=lambda x: x[1])
-        sport_type, confidence = best_sport
+#         # Determine the most likely sport
+#         best_sport = max(sport_scores.items(), key=lambda x: x[1])
+#         sport_type, confidence = best_sport
         
-        return SportDetectionResult(
-            sport_type=sport_type,
-            confidence=confidence,
-            reasoning=self._generate_reasoning(sport_indicators, pose_indicators, sport_type),
-            detected_objects=sport_indicators.get('objects', [])
-        )
+#         return SportDetectionResult(
+#             sport_type=sport_type,
+#             confidence=confidence,
+#             reasoning=self._generate_reasoning(sport_indicators, pose_indicators, sport_type),
+#             detected_objects=sport_indicators.get('objects', [])
+#         )
     
-    def _analyze_video_content(self, video_path: str) -> Dict:
-        """Analyze video content for sport-specific indicators"""
-        cap = cv2.VideoCapture(video_path)
+#     def _analyze_video_content(self, video_path: str) -> Dict:
+#         """Analyze video content for sport-specific indicators"""
+#         cap = cv2.VideoCapture(video_path)
         
-        # Sample frames for analysis
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        sample_frames = min(10, frame_count // 10) if frame_count > 10 else frame_count
+#         # Sample frames for analysis
+#         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#         sample_frames = min(10, frame_count // 10) if frame_count > 10 else frame_count
         
-        indicators = {
-            'dominant_colors': [],
-            'motion_patterns': [],
-            'objects': []
-        }
+#         indicators = {
+#             'dominant_colors': [],
+#             'motion_patterns': [],
+#             'objects': []
+#         }
         
-        for i in range(sample_frames):
-            frame_pos = (frame_count // sample_frames) * i
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_pos)
-            ret, frame = cap.read()
+#         for i in range(sample_frames):
+#             frame_pos = (frame_count // sample_frames) * i
+#             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_pos)
+#             ret, frame = cap.read()
             
-            if ret:
-                # Analyze dominant colors (tennis courts are usually green/blue)
-                dominant_color = self._get_dominant_color(frame)
-                indicators['dominant_colors'].append(dominant_color)
+#             if ret:
+#                 # Analyze dominant colors (tennis courts are usually green/blue)
+#                 dominant_color = self._get_dominant_color(frame)
+#                 indicators['dominant_colors'].append(dominant_color)
                 
-                # Basic motion analysis
-                if i > 0:
-                    motion = self._analyze_motion(prev_frame, frame)
-                    indicators['motion_patterns'].append(motion)
+#                 # Basic motion analysis
+#                 if i > 0:
+#                     motion = self._analyze_motion(prev_frame, frame)
+#                     indicators['motion_patterns'].append(motion)
                 
-                prev_frame = frame
+#                 prev_frame = frame
         
-        cap.release()
-        return indicators
+#         cap.release()
+#         return indicators
     
-    def _analyze_pose_patterns(self, pose_data: Dict) -> Dict:
-        """Analyze pose patterns to identify sport characteristics"""
-        if not pose_data:
-            return {}
+#     def _analyze_pose_patterns(self, pose_data: Dict) -> Dict:
+#         """Analyze pose patterns to identify sport characteristics"""
+#         if not pose_data:
+#             return {}
         
-        patterns = {
-            'arm_movements': [],
-            'leg_movements': [],
-            'body_positions': []
-        }
+#         patterns = {
+#             'arm_movements': [],
+#             'leg_movements': [],
+#             'body_positions': []
+#         }
         
-        for frame_idx, frame_data in pose_data.items():
-            if not frame_data.get('keypoints'):
-                continue
+#         for frame_idx, frame_data in pose_data.items():
+#             if not frame_data.get('keypoints'):
+#                 continue
                 
-            keypoints = frame_data['keypoints']
+#             keypoints = frame_data['keypoints']
             
-            # Analyze typical tennis movements
-            tennis_score = self._score_tennis_patterns(keypoints)
-            running_score = self._score_running_patterns(keypoints)
-            soccer_score = self._score_soccer_patterns(keypoints)
+#             # Analyze typical tennis movements
+#             tennis_score = self._score_tennis_patterns(keypoints)
+#             running_score = self._score_running_patterns(keypoints)
+#             soccer_score = self._score_soccer_patterns(keypoints)
             
-            patterns['arm_movements'].append(tennis_score)
-            patterns['leg_movements'].append(running_score)
-            patterns['body_positions'].append(soccer_score)
+#             patterns['arm_movements'].append(tennis_score)
+#             patterns['leg_movements'].append(running_score)
+#             patterns['body_positions'].append(soccer_score)
         
-        return patterns
+#         return patterns
     
-    def _score_tennis_patterns(self, keypoints: List[Dict]) -> float:
-        """Score likelihood of tennis-specific movements"""
-        score = 0.0
+#     def _score_tennis_patterns(self, keypoints: List[Dict]) -> float:
+#         """Score likelihood of tennis-specific movements"""
+#         score = 0.0
         
-        # Look for tennis-specific arm positions
-        right_wrist = next((kp for kp in keypoints if kp['class_name'] == 'right_wrist'), None)
-        right_elbow = next((kp for kp in keypoints if kp['class_name'] == 'right_elbow'), None)
-        right_shoulder = next((kp for kp in keypoints if kp['class_name'] == 'right_shoulder'), None)
+#         # Look for tennis-specific arm positions
+#         right_wrist = next((kp for kp in keypoints if kp['class_name'] == 'right_wrist'), None)
+#         right_elbow = next((kp for kp in keypoints if kp['class_name'] == 'right_elbow'), None)
+#         right_shoulder = next((kp for kp in keypoints if kp['class_name'] == 'right_shoulder'), None)
         
-        if all([right_wrist, right_elbow, right_shoulder]):
-            # Tennis players often have extended arm positions
-            arm_extension = abs(right_wrist['y'] - right_shoulder['y'])
-            if arm_extension > 0.15:  # Extended arm position
-                score += 0.3
+#         if all([right_wrist, right_elbow, right_shoulder]):
+#             # Tennis players often have extended arm positions
+#             arm_extension = abs(right_wrist['y'] - right_shoulder['y'])
+#             if arm_extension > 0.15:  # Extended arm position
+#                 score += 0.3
             
-            # Check for racket-holding position
-            wrist_height = right_wrist['y']
-            shoulder_height = right_shoulder['y']
-            if wrist_height < shoulder_height:  # Wrist above shoulder
-                score += 0.2
+#             # Check for racket-holding position
+#             wrist_height = right_wrist['y']
+#             shoulder_height = right_shoulder['y']
+#             if wrist_height < shoulder_height:  # Wrist above shoulder
+#                 score += 0.2
         
-        return min(score, 1.0)
+#         return min(score, 1.0)
     
-    def _score_running_patterns(self, keypoints: List[Dict]) -> float:
-        """Score likelihood of running-specific movements"""
-        score = 0.0
+#     def _score_running_patterns(self, keypoints: List[Dict]) -> float:
+#         """Score likelihood of running-specific movements"""
+#         score = 0.0
         
-        # Look for running-specific leg patterns
-        left_knee = next((kp for kp in keypoints if kp['class_name'] == 'left_knee'), None)
-        right_knee = next((kp for kp in keypoints if kp['class_name'] == 'right_knee'), None)
-        left_ankle = next((kp for kp in keypoints if kp['class_name'] == 'left_ankle'), None)
-        right_ankle = next((kp for kp in keypoints if kp['class_name'] == 'right_ankle'), None)
+#         # Look for running-specific leg patterns
+#         left_knee = next((kp for kp in keypoints if kp['class_name'] == 'left_knee'), None)
+#         right_knee = next((kp for kp in keypoints if kp['class_name'] == 'right_knee'), None)
+#         left_ankle = next((kp for kp in keypoints if kp['class_name'] == 'left_ankle'), None)
+#         right_ankle = next((kp for kp in keypoints if kp['class_name'] == 'right_ankle'), None)
         
-        if all([left_knee, right_knee, left_ankle, right_ankle]):
-            # Running typically shows alternating leg patterns
-            knee_separation = abs(left_knee['y'] - right_knee['y'])
-            if knee_separation > 0.1:  # Legs at different heights
-                score += 0.4
+#         if all([left_knee, right_knee, left_ankle, right_ankle]):
+#             # Running typically shows alternating leg patterns
+#             knee_separation = abs(left_knee['y'] - right_knee['y'])
+#             if knee_separation > 0.1:  # Legs at different heights
+#                 score += 0.4
             
-            # Forward lean is common in running
-            avg_knee_y = (left_knee['y'] + right_knee['y']) / 2
-            avg_ankle_y = (left_ankle['y'] + right_ankle['y']) / 2
-            if avg_knee_y < avg_ankle_y:  # Knees higher than ankles
-                score += 0.2
+#             # Forward lean is common in running
+#             avg_knee_y = (left_knee['y'] + right_knee['y']) / 2
+#             avg_ankle_y = (left_ankle['y'] + right_ankle['y']) / 2
+#             if avg_knee_y < avg_ankle_y:  # Knees higher than ankles
+#                 score += 0.2
         
-        return min(score, 1.0)
+#         return min(score, 1.0)
     
-    def _score_soccer_patterns(self, keypoints: List[Dict]) -> float:
-        """Score likelihood of soccer-specific movements"""
-        score = 0.0
+#     def _score_soccer_patterns(self, keypoints: List[Dict]) -> float:
+#         """Score likelihood of soccer-specific movements"""
+#         score = 0.0
         
-        # Soccer involves a lot of leg work, less arm movement
-        left_ankle = next((kp for kp in keypoints if kp['class_name'] == 'left_ankle'), None)
-        right_ankle = next((kp for kp in keypoints if kp['class_name'] == 'right_ankle'), None)
-        left_knee = next((kp for kp in keypoints if kp['class_name'] == 'left_knee'), None)
-        right_knee = next((kp for kp in keypoints if kp['class_name'] == 'right_knee'), None)
+#         # Soccer involves a lot of leg work, less arm movement
+#         left_ankle = next((kp for kp in keypoints if kp['class_name'] == 'left_ankle'), None)
+#         right_ankle = next((kp for kp in keypoints if kp['class_name'] == 'right_ankle'), None)
+#         left_knee = next((kp for kp in keypoints if kp['class_name'] == 'left_knee'), None)
+#         right_knee = next((kp for kp in keypoints if kp['class_name'] == 'right_knee'), None)
         
-        if all([left_ankle, right_ankle, left_knee, right_knee]):
-            # Wide stance is common in soccer
-            ankle_separation = abs(left_ankle['x'] - right_ankle['x'])
-            if ankle_separation > 0.2:
-                score += 0.3
+#         if all([left_ankle, right_ankle, left_knee, right_knee]):
+#             # Wide stance is common in soccer
+#             ankle_separation = abs(left_ankle['x'] - right_ankle['x'])
+#             if ankle_separation > 0.2:
+#                 score += 0.3
             
-            # Check for kicking position (one leg forward)
-            if abs(left_ankle['x'] - right_ankle['x']) > 0.15:
-                score += 0.2
+#             # Check for kicking position (one leg forward)
+#             if abs(left_ankle['x'] - right_ankle['x']) > 0.15:
+#                 score += 0.2
         
-        return min(score, 1.0)
+#         return min(score, 1.0)
     
-    def _get_dominant_color(self, frame) -> str:
-        """Get dominant color from frame"""
-        # Convert to HSV for better color analysis
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+#     def _get_dominant_color(self, frame) -> str:
+#         """Get dominant color from frame"""
+#         # Convert to HSV for better color analysis
+#         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         
-        # Define color ranges
-        green_lower = np.array([35, 40, 40])
-        green_upper = np.array([85, 255, 255])
+#         # Define color ranges
+#         green_lower = np.array([35, 40, 40])
+#         green_upper = np.array([85, 255, 255])
         
-        blue_lower = np.array([100, 50, 50])
-        blue_upper = np.array([130, 255, 255])
+#         blue_lower = np.array([100, 50, 50])
+#         blue_upper = np.array([130, 255, 255])
         
-        # Count pixels in each range
-        green_mask = cv2.inRange(hsv, green_lower, green_upper)
-        blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
+#         # Count pixels in each range
+#         green_mask = cv2.inRange(hsv, green_lower, green_upper)
+#         blue_mask = cv2.inRange(hsv, blue_lower, blue_upper)
         
-        green_pixels = cv2.countNonZero(green_mask)
-        blue_pixels = cv2.countNonZero(blue_mask)
+#         green_pixels = cv2.countNonZero(green_mask)
+#         blue_pixels = cv2.countNonZero(blue_mask)
         
-        total_pixels = frame.shape[0] * frame.shape[1]
+#         total_pixels = frame.shape[0] * frame.shape[1]
         
-        if green_pixels > total_pixels * 0.3:
-            return 'green'
-        elif blue_pixels > total_pixels * 0.2:
-            return 'blue'
-        else:
-            return 'other'
+#         if green_pixels > total_pixels * 0.3:
+#             return 'green'
+#         elif blue_pixels > total_pixels * 0.2:
+#             return 'blue'
+#         else:
+#             return 'other'
     
-    def _analyze_motion(self, prev_frame, current_frame) -> Dict:
-        """Basic motion analysis between frames"""
-        # Convert to grayscale
-        prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
-        curr_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+#     def _analyze_motion(self, prev_frame, current_frame) -> Dict:
+#         """Basic motion analysis between frames"""
+#         # Convert to grayscale
+#         prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+#         curr_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         
-        # Calculate optical flow
-        flow = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, None, None)
+#         # Calculate optical flow
+#         flow = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, None, None)
         
-        return {'intensity': 'medium'}  # Simplified for now
+#         return {'intensity': 'medium'}  # Simplified for now
     
-    def _calculate_sport_scores(self, video_indicators: Dict, pose_indicators: Dict) -> Dict[str, float]:
-        """Calculate confidence scores for each sport"""
-        scores = {'tennis': 0.0, 'running': 0.0, 'soccer': 0.0}
+#     def _calculate_sport_scores(self, video_indicators: Dict, pose_indicators: Dict) -> Dict[str, float]:
+#         """Calculate confidence scores for each sport"""
+#         scores = {'tennis': 0.0, 'running': 0.0, 'soccer': 0.0}
         
-        # Video-based scoring
-        dominant_colors = video_indicators.get('dominant_colors', [])
-        if 'green' in dominant_colors:
-            scores['tennis'] += 0.3  # Tennis courts are often green
-            scores['soccer'] += 0.2   # Soccer fields are green
+#         # Video-based scoring
+#         dominant_colors = video_indicators.get('dominant_colors', [])
+#         if 'green' in dominant_colors:
+#             scores['tennis'] += 0.3  # Tennis courts are often green
+#             scores['soccer'] += 0.2   # Soccer fields are green
         
-        # Pose-based scoring
-        if pose_indicators:
-            tennis_scores = pose_indicators.get('arm_movements', [])
-            running_scores = pose_indicators.get('leg_movements', [])
-            soccer_scores = pose_indicators.get('body_positions', [])
+#         # Pose-based scoring
+#         if pose_indicators:
+#             tennis_scores = pose_indicators.get('arm_movements', [])
+#             running_scores = pose_indicators.get('leg_movements', [])
+#             soccer_scores = pose_indicators.get('body_positions', [])
             
-            if tennis_scores:
-                scores['tennis'] += np.mean(tennis_scores) * 0.7
-            if running_scores:
-                scores['running'] += np.mean(running_scores) * 0.7
-            if soccer_scores:
-                scores['soccer'] += np.mean(soccer_scores) * 0.7
+#             if tennis_scores:
+#                 scores['tennis'] += np.mean(tennis_scores) * 0.7
+#             if running_scores:
+#                 scores['running'] += np.mean(running_scores) * 0.7
+#             if soccer_scores:
+#                 scores['soccer'] += np.mean(soccer_scores) * 0.7
         
-        # Normalize scores
-        max_score = max(scores.values()) if any(scores.values()) else 1.0
-        if max_score > 0:
-            scores = {sport: score / max_score for sport, score in scores.items()}
+#         # Normalize scores
+#         max_score = max(scores.values()) if any(scores.values()) else 1.0
+#         if max_score > 0:
+#             scores = {sport: score / max_score for sport, score in scores.items()}
         
-        return scores
+#         return scores
     
-    def _generate_reasoning(self, video_indicators: Dict, pose_indicators: Dict, sport_type: str) -> str:
-        """Generate reasoning for sport detection"""
-        reasons = []
+#     def _generate_reasoning(self, video_indicators: Dict, pose_indicators: Dict, sport_type: str) -> str:
+#         """Generate reasoning for sport detection"""
+#         reasons = []
         
-        if sport_type == 'tennis':
-            reasons.append("Detected tennis-specific arm movements and court colors")
-        elif sport_type == 'running':
-            reasons.append("Identified running gait patterns and leg movements")
-        elif sport_type == 'soccer':
-            reasons.append("Observed soccer-typical body positions and field characteristics")
+#         if sport_type == 'tennis':
+#             reasons.append("Detected tennis-specific arm movements and court colors")
+#         elif sport_type == 'running':
+#             reasons.append("Identified running gait patterns and leg movements")
+#         elif sport_type == 'soccer':
+#             reasons.append("Observed soccer-typical body positions and field characteristics")
         
-        dominant_colors = video_indicators.get('dominant_colors', [])
-        if 'green' in dominant_colors:
-            reasons.append("Green surface detected (typical of tennis courts/soccer fields)")
+#         dominant_colors = video_indicators.get('dominant_colors', [])
+#         if 'green' in dominant_colors:
+#             reasons.append("Green surface detected (typical of tennis courts/soccer fields)")
         
-        return "; ".join(reasons) if reasons else "Based on pose and movement analysis"
+#         return "; ".join(reasons) if reasons else "Based on pose and movement analysis"
 
 
 # # multi_sport_coach.py
