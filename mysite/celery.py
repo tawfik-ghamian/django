@@ -52,7 +52,7 @@ from celery import Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 
 # Get Redis URL from environment
-redis_url = os.environ.get('REDIS_URL',"http://localhost:8000")
+redis_url = os.environ.get('REDIS_URL')
 
 if not redis_url:
     print("=" * 80)
