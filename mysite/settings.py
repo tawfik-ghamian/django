@@ -32,7 +32,12 @@ ALLOWED_HOSTS = ["*"]
 
 # Media
 
-MEDIA_ROOT = os.path.join('/app/data', 'videos')
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    MEDIA_ROOT = '/app/data'
+else:
+    # Local development path
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'data')
+
 MEDIA_URL = '/data/'
 
 # FORM SUBMISSION

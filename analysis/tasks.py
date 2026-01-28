@@ -84,6 +84,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.utils import timezone
 import logging
+from django.core.files import File
 import os
 
 logger = get_task_logger(__name__)
@@ -127,10 +128,10 @@ def process_video_async(self, video_id, video_name, sport_type):
         
         # Save processed files
         with open(video_output_path, 'rb') as f:
-            video.processed_video.save(f'{video_name}_processed.mp4', f, save=False)
+            video.processed_video.save(f'{video_name}_processed.mp4', File(f), save=False)
         
         with open(video_data_path, 'rb') as f:
-            video.video_data_json.save(f'{video_name}_data.json', f, save=False)
+            video.video_data_json.save(f'{video_name}_data.json', File(f), save=False)
         
         logger.info(f"Processed files saved for video {video_id}")
         

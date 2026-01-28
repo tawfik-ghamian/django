@@ -1169,7 +1169,6 @@ from rest_framework.decorators import api_view
 from .models import Video
 from .tasks import process_video_async
 from .serializer import VideoSerializer
-from django.core.files.storage import FileSystemStorage
 # from .tasks import process_video_async
 # from celery.result import AsyncResult 
 # from django.utils import timezone
@@ -1281,10 +1280,6 @@ class VideoUploadView(generics.CreateAPIView):
             logger.error(f"Invalid file type: {video_file.content_type}")
             raise ValidationError(f"Invalid file type. Allowed: {', '.join(allowed_types)}")
         
-        fs = FileSystemStorage()
-        filename = fs.save(video_file.name, video_file)
-        file_url = fs.url(filename)
-        logger.info(f"file url is after saving {file_url}")
         
         # Save video instance
         self.perform_create(serializer)
