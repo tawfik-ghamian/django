@@ -9,7 +9,7 @@ langchain
 langchain-groq
 groq
 opencv-python-headless
-mediapipe====0.10.14
+mediapipe==0.10.14
 supervision
 onnxruntime
 inference
