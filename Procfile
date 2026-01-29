@@ -1,3 +1,3 @@
 # web: mkdir -p /app/data/videos /app/data/processed_videos /app/data/video_data && python manage.py migrate && gunicorn mysite.wsgi:application --timeout 120 --workers 2 --bind 0.0.0.0:$PORT
 # worker: mkdir -p /app/data/videos /app/data/processed_videos /app/data/video_data && celery -A mysite worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
-web: mkdir -p /app/data/videos /app/data/processed_videos /app/data/video_data && python manage.py migrate && celery -A mysite worker --loglevel=info --concurrency=2 --max-tasks-per-child=10 & gunicorn mysite.wsgi:application --timeout 120 --workers 2 --bind 0.0.0.0:$PORT
+web: mkdir -p /app/data/videos /app/data/processed_videos /app/data/video_data && python manage.py migrate && supervisord -c supervisord.conf
