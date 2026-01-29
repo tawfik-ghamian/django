@@ -273,12 +273,12 @@ CELERY_ENABLE_UTC = True
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = False
 
-# Task routing
-CELERY_TASK_ROUTES = {
-    'analysis.tasks.process_video_async': {
-        'queue': 'video_processing',
-    },
-}
+# # Task routing
+# CELERY_TASK_ROUTES = {
+#     'analysis.tasks.process_video_async': {
+#         'queue': 'video_processing',
+#     },
+# }
 # ============ END CELERY CONFIGURATION ============
 
 # # Celery Configuration
