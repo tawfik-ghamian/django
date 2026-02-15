@@ -717,6 +717,167 @@
 
 
 
+# # multi_sport_coach.py
+# from .llm_coach import TennisCoachAnalyzer
+# from .fallback_analyzer import FallbackBiomechanicalAnalyzer
+# import logging
+
+# logger = logging.getLogger(__name__)
+
+# class SimplifiedMultiSportCoachAnalyzer:
+#     """
+#     Unified multi-sport analyzer that provides consistent response structure
+#     regardless of whether tennis is detected or fallback analysis is used.
+#     """
+    
+#     def __init__(self):
+#         self.tennis_analyzer = TennisCoachAnalyzer()
+#         self.fallback_analyzer = FallbackBiomechanicalAnalyzer()
+    
+#     def analyze_video(self, sport_type: str, video_data: dict) -> dict:
+#         """
+#         Main entry point for multi-sport analysis.
+#         Returns unified response structure for all scenarios.
+        
+#         Args:
+#             sport_type: 'tennis', 'running', or 'soccer'
+#             video_data: Dictionary with frame data from video processing
+            
+#         Returns:
+#             Unified dict with keys:
+#             - sport_type: str
+#             - analysis_status: 'complete', 'fallback_analysis', or 'insufficient_data'
+#             - overall_score: float or None
+#             - detailed_scores: dict or None
+#             - feedback: str
+#             - frames_analyzed: int
+#             - shot_types_detected: list
+#             - processing_complete: bool
+#             - processed_video_url: str (added by view)
+#             - feedback_url: str (added by view)
+#         """
+        
+#         logger.info(f"Starting analysis for sport: {sport_type}")
+        
+#         # Check if any frames have YOLO detections (shot types)
+#         shot_types = []
+#         frames_with_yolo = 0
+#         frames_with_mediapipe = 0
+        
+#         for frame_data in video_data.values():
+#             if frame_data.get('class_name'):
+#                 shot_types.append(frame_data['class_name'])
+#                 frames_with_yolo += 1
+#             if frame_data.get('mediapipe_pose_landmarks'):
+#                 frames_with_mediapipe += 1
+        
+#         logger.info(f"Frames with YOLO detections: {frames_with_yolo}")
+#         logger.info(f"Frames with MediaPipe pose: {frames_with_mediapipe}")
+        
+#         # CASE 1: Tennis detected with YOLO - use full tennis analyzer
+#         if sport_type == 'tennis' and frames_with_yolo > 0:
+#             logger.info("Tennis detected - using full tennis analyzer")
+#             return self._analyze_tennis(video_data, shot_types)
+        
+#         # CASE 2: No YOLO detections OR other sports - use fallback with MediaPipe + LLM
+#         elif frames_with_mediapipe > 0:
+#             logger.info(f"No YOLO detections for {sport_type} - using MediaPipe fallback with LLM")
+#             return self._analyze_with_fallback(sport_type, video_data)
+        
+#         # CASE 3: No data at all
+#         else:
+#             logger.warning("No pose data detected at all")
+#             return self._generate_no_data_response(sport_type)
+    
+#     def _analyze_tennis(self, video_data: dict, shot_types: list) -> dict:
+#         """
+#         Full tennis analysis using YOLO keypoints + detailed tennis analyzer.
+#         Returns complete unified response.
+#         """
+#         logger.info("Running comprehensive tennis analysis")
+        
+#         # Use the comprehensive tennis analyzer
+#         tennis_analysis = self.tennis_analyzer.generate_comprehensive_feedback(
+#             video_data, 
+#             shot_types
+#         )
+        
+#         # Return unified response structure
+#         return {
+#             "sport_type": "tennis",
+#             "analysis_status": "complete",
+#             "overall_score": tennis_analysis['overall_score'],
+#             "detailed_scores": tennis_analysis['detailed_scores'],
+#             "feedback": tennis_analysis['feedback'],
+#             "frames_analyzed": tennis_analysis['frames_analyzed'],
+#             "shot_types_detected": tennis_analysis['shot_types_detected'],
+#             "processing_complete": True,
+#             "is_fallback": False,
+#             "model_status": "fully_trained"
+#         }
+    
+#     def _analyze_with_fallback(self, sport_type: str, video_data: dict) -> dict:
+#         """
+#         Fallback analysis using MediaPipe angles + LLM feedback.
+#         Returns unified response structure matching tennis format.
+#         """
+#         logger.info(f"Running fallback analysis for {sport_type}")
+        
+#         # Use fallback analyzer with LLM
+#         fallback_result = self.fallback_analyzer.analyze_video_fallback(
+#             video_data, 
+#             sport_type
+#         )
+        
+#         # Fallback analyzer already returns unified structure
+#         return fallback_result
+    
+#     def _generate_no_data_response(self, sport_type: str) -> dict:
+#         """
+#         Generate response when no pose data is available.
+#         Returns unified response structure.
+#         """
+#         return {
+#             "sport_type": sport_type,
+#             "analysis_status": "insufficient_data",
+#             "overall_score": None,
+#             "detailed_scores": None,
+#             "feedback": f"""
+# ⚠️ **INSUFFICIENT DATA**
+
+# We were unable to detect body movements in your {sport_type} video.
+
+# **Common causes:**
+# - Camera too far from subject
+# - Poor lighting conditions
+# - Subject not fully visible
+# - Motion blur from fast movements
+# - Background obstructions
+
+# **Please try again with:**
+# ✅ Better lighting (natural daylight preferred)
+# ✅ Camera 10-15 feet from athlete
+# ✅ Full body visible throughout video
+# ✅ Minimal background distractions
+
+# Upload a new video for analysis!
+# """,
+#             "frames_analyzed": 0,
+#             "shot_types_detected": [],
+#             "processing_complete": True,
+#             "is_fallback": True,
+#             "model_status": "insufficient_data",
+#             "warning": "No pose data detected in video"
+#         }
+
+
+# # Legacy compatibility - if needed
+# class EnhancedMultiSportCoachAnalyzer(SimplifiedMultiSportCoachAnalyzer):
+#     """Alias for backwards compatibility"""
+#     pass
+
+
+
 # multi_sport_coach.py
 from .llm_coach import TennisCoachAnalyzer
 from .fallback_analyzer import FallbackBiomechanicalAnalyzer
@@ -726,8 +887,16 @@ logger = logging.getLogger(__name__)
 
 class SimplifiedMultiSportCoachAnalyzer:
     """
-    Unified multi-sport analyzer that provides consistent response structure
-    regardless of whether tennis is detected or fallback analysis is used.
+    Unified multi-sport analyzer that provides consistent response structure.
+    
+    USER-FACING STATUSES:
+    - "complete": Analysis successful (with or without technique detection)
+    - "processing": Video is being analyzed
+    - "failed": Analysis could not be performed
+    
+    INTERNAL TRACKING:
+    - is_fallback: True if using MediaPipe-only analysis (no YOLO)
+    - analysis_method: Describes which method was used
     """
     
     def __init__(self):
@@ -744,17 +913,22 @@ class SimplifiedMultiSportCoachAnalyzer:
             video_data: Dictionary with frame data from video processing
             
         Returns:
-            Unified dict with keys:
-            - sport_type: str
-            - analysis_status: 'complete', 'fallback_analysis', or 'insufficient_data'
-            - overall_score: float or None
-            - detailed_scores: dict or None
-            - feedback: str
-            - frames_analyzed: int
-            - shot_types_detected: list
-            - processing_complete: bool
-            - processed_video_url: str (added by view)
-            - feedback_url: str (added by view)
+            Unified dict with user-friendly status:
+            {
+                "sport_type": str,
+                "analysis_status": "complete" | "processing" | "failed",
+                "overall_score": float | None,
+                "detailed_scores": dict | None,
+                "feedback": str,
+                "frames_analyzed": int,
+                "shot_types_detected": list,
+                "processing_complete": bool,
+                
+                # Internal tracking (backend use)
+                "is_fallback": bool,
+                "analysis_method": str,
+                "note": str
+            }
         """
         
         logger.info(f"Starting analysis for sport: {sport_type}")
@@ -771,30 +945,31 @@ class SimplifiedMultiSportCoachAnalyzer:
             if frame_data.get('mediapipe_pose_landmarks'):
                 frames_with_mediapipe += 1
         
-        logger.info(f"Frames with YOLO detections: {frames_with_yolo}")
-        logger.info(f"Frames with MediaPipe pose: {frames_with_mediapipe}")
+        logger.info(f"Detection summary - YOLO: {frames_with_yolo} frames, MediaPipe: {frames_with_mediapipe} frames")
         
         # CASE 1: Tennis detected with YOLO - use full tennis analyzer
         if sport_type == 'tennis' and frames_with_yolo > 0:
-            logger.info("Tennis detected - using full tennis analyzer")
+            logger.info("✅ Tennis techniques detected - using full tennis analyzer")
             return self._analyze_tennis(video_data, shot_types)
         
         # CASE 2: No YOLO detections OR other sports - use fallback with MediaPipe + LLM
         elif frames_with_mediapipe > 0:
-            logger.info(f"No YOLO detections for {sport_type} - using MediaPipe fallback with LLM")
+            logger.info(f"ℹ️ No specific techniques detected for {sport_type} - using biomechanical pose analysis")
             return self._analyze_with_fallback(sport_type, video_data)
         
         # CASE 3: No data at all
         else:
-            logger.warning("No pose data detected at all")
+            logger.warning("❌ No pose data detected in video")
             return self._generate_no_data_response(sport_type)
     
     def _analyze_tennis(self, video_data: dict, shot_types: list) -> dict:
         """
         Full tennis analysis using YOLO keypoints + detailed tennis analyzer.
-        Returns complete unified response.
+        Returns complete unified response with scoring.
+        
+        STATUS: "complete" (with technique detection)
         """
-        logger.info("Running comprehensive tennis analysis")
+        logger.info("Running comprehensive tennis technique analysis")
         
         # Use the comprehensive tennis analyzer
         tennis_analysis = self.tennis_analyzer.generate_comprehensive_feedback(
@@ -805,23 +980,29 @@ class SimplifiedMultiSportCoachAnalyzer:
         # Return unified response structure
         return {
             "sport_type": "tennis",
-            "analysis_status": "complete",
+            "analysis_status": "complete",  # ✅ USER-FRIENDLY
             "overall_score": tennis_analysis['overall_score'],
             "detailed_scores": tennis_analysis['detailed_scores'],
             "feedback": tennis_analysis['feedback'],
             "frames_analyzed": tennis_analysis['frames_analyzed'],
             "shot_types_detected": tennis_analysis['shot_types_detected'],
             "processing_complete": True,
+            
+            # Internal tracking
             "is_fallback": False,
-            "model_status": "fully_trained"
+            "analysis_method": "tennis_technique_detection",
+            "note": f"Full tennis analysis with {len(tennis_analysis['shot_types_detected'])} technique types detected"
         }
     
     def _analyze_with_fallback(self, sport_type: str, video_data: dict) -> dict:
         """
         Fallback analysis using MediaPipe angles + LLM feedback.
-        Returns unified response structure matching tennis format.
+        Returns unified response structure.
+        
+        STATUS: "complete" (biomechanical analysis)
+        INTERNAL: is_fallback = True
         """
-        logger.info(f"Running fallback analysis for {sport_type}")
+        logger.info(f"Running biomechanical pose analysis for {sport_type}")
         
         # Use fallback analyzer with LLM
         fallback_result = self.fallback_analyzer.analyze_video_fallback(
@@ -829,45 +1010,46 @@ class SimplifiedMultiSportCoachAnalyzer:
             sport_type
         )
         
-        # Fallback analyzer already returns unified structure
+        # Fallback analyzer already returns unified structure with "complete" status
         return fallback_result
     
     def _generate_no_data_response(self, sport_type: str) -> dict:
         """
         Generate response when no pose data is available.
-        Returns unified response structure.
+        
+        STATUS: "failed" (couldn't analyze)
         """
         return {
             "sport_type": sport_type,
-            "analysis_status": "insufficient_data",
+            "analysis_status": "failed",  # ✅ USER-FRIENDLY
             "overall_score": None,
             "detailed_scores": None,
-            "feedback": f"""
-⚠️ **INSUFFICIENT DATA**
+            "feedback": f"""⚠️ **UNABLE TO ANALYZE VIDEO**
 
-We were unable to detect body movements in your {sport_type} video.
+We couldn't detect your body movements in this {sport_type} video. This usually happens when:
 
-**Common causes:**
-- Camera too far from subject
-- Poor lighting conditions
-- Subject not fully visible
-- Motion blur from fast movements
-- Background obstructions
+• Camera is too far from the athlete
+• Lighting is too dark or has harsh shadows  
+• Athlete is partially out of frame
+• Video quality is too low or blurry
 
-**Please try again with:**
-✅ Better lighting (natural daylight preferred)
-✅ Camera 10-15 feet from athlete
-✅ Full body visible throughout video
-✅ Minimal background distractions
+**📸 For best results, please record with:**
+✅ Good lighting (outdoor daylight or bright indoor lighting)
+✅ Camera positioned 10-15 feet from athlete
+✅ Full body visible from head to feet
+✅ Clear, unobstructed view
+✅ Stable camera (tripod recommended)
 
-Upload a new video for analysis!
+Please upload a new video and we'll analyze it right away!
 """,
             "frames_analyzed": 0,
             "shot_types_detected": [],
             "processing_complete": True,
-            "is_fallback": True,
-            "model_status": "insufficient_data",
-            "warning": "No pose data detected in video"
+            
+            # Internal tracking
+            "is_fallback": False,
+            "analysis_method": "none",
+            "note": "No pose data detected in video"
         }
 
 
