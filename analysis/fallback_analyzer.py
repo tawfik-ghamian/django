@@ -977,7 +977,11 @@ class FallbackBiomechanicalAnalyzer:
         angle_stats = self._calculate_angle_statistics(angle_measurements)
         
         # Generate LLM-based feedback
-        feedback = self._generate_llm_fallback_feedback(sport_type, angle_stats, frames_analyzed)
+        # feedback = self._generate_llm_fallback_feedback(sport_type, angle_stats, frames_analyzed)
+        if sport_type.lower() == "tennis":
+            feedback = self._generate_tennis_feedback(angle_stats, frames_analyzed)
+        else:
+            feedback = self._generate_keypoint_only_feedback(sport_type, angle_stats, frames_analyzed)
         
         # Return unified response structure
         # USER-FACING: analysis_status = "complete" (not "fallback_analysis")
@@ -1142,129 +1146,345 @@ class FallbackBiomechanicalAnalyzer:
         
         return stats
     
-    def _generate_llm_fallback_feedback(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
+    def _generate_tennis_feedback(self, angle_stats: Dict, frames_analyzed: int) -> str:
         """
-        Generate feedback using LLM based on biomechanical analysis.
-        Uses professional coaching language without mentioning "fallback" or technical limitations.
+        Tennis: keypoints analysis (fallback has no YOLO frames, but still
+        formats the prompt as tennis-specific with Markdown output).
         """
-        
-        # Prepare analysis summary for LLM
+        analysis_summary = self._prepare_biomechanical_summary("tennis", angle_stats, frames_analyzed)
+
+        system_template = """\
+    You are a professional tennis biomechanics coach and movement analyst.
+
+    Your coaching style is:
+    - Professional but accessible to athletes of all levels
+    - Grounded in biomechanical data: joint angles, posture, balance, movement patterns
+    - Positive, constructive, and actionable
+
+    You have analyzed the athlete using full-body pose estimation.
+    No specific shot frames were classified in this session — your feedback is derived entirely from joint-angle statistics across the full session.
+
+    STRICT GUIDELINES:
+    - NEVER mention "fallback analysis", "temporary feedback", or "model limitations"
+    - NEVER apologize for what you cannot detect
+    - ALWAYS ground observations in the provided angle data
+    - Structure your response EXACTLY in this Markdown format:
+
+    # 🎾 Tennis Performance Analysis
+
+    ## 1. Movement Assessment
+    *What the joint angles reveal about technique and readiness*
+
+    ## 2. Key Biomechanical Observations
+    - Observation 1
+    - Observation 2
+    - Observation 3
+
+    ## 3. Recommendations
+    - Recommendation 1
+    - Recommendation 2
+    - Recommendation 3
+
+    ## 4. Strengths 💪
+    *What the athlete is executing well*
+
+    ---
+    *Analysis based on {frames_analyzed} frames of full-body pose tracking.*
+
+    Keep the total response under 400 words."""
+
+        human_template = """\
+    ## Biomechanical Keypoint Analysis
+    Sport: TENNIS
+    Frames Analyzed: {frames_analyzed}
+
+    {analysis_summary}
+
+    Please provide your professional tennis coaching feedback in the specified Markdown format."""
+
+        return self._invoke_llm(system_template, human_template, {
+            "frames_analyzed": frames_analyzed,
+            "analysis_summary": analysis_summary,
+        })
+
+
+    def _generate_keypoint_only_feedback(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
+        """
+        Running / Soccer: keypoints only, no frame detection, Markdown output.
+        """
         analysis_summary = self._prepare_biomechanical_summary(sport_type, angle_stats, frames_analyzed)
-        
-        # Generate LLM feedback
-        system_template = """You are a professional sports biomechanics coach and movement analyst with expertise across multiple sports.
 
-Your coaching style is:
-- Professional but accessible to athletes of all levels
-- Focused on practical, biomechanical insights from body movement analysis
-- Positive and constructive
-- Clear about what the analysis reveals
+        sport_context = {
+            "running": (
+                "running biomechanics coach",
+                "stride efficiency, cadence patterns, knee drive, hip extension, arm swing, and posture",
+                "🏃",
+            ),
+            "soccer": (
+                "soccer biomechanics and athletic performance coach",
+                "lower-body power, hip mobility, balance, agility mechanics, and body positioning",
+                "⚽",
+            ),
+        }
+        role, focus_areas, emoji = sport_context.get(
+            sport_type.lower(),
+            ("sports biomechanics coach", "overall movement quality and joint mechanics", "🏋️"),
+        )
+        sport_label = sport_type.capitalize()
 
-You have analyzed an athlete's {sport_type} performance using advanced pose estimation technology that tracks full body movement and calculates joint angles throughout their motion.
+        system_template = f"""\
+    You are a professional {role}.
 
-Based on the biomechanical angle analysis provided, give coaching feedback that includes:
-1. **Movement Assessment** - What the joint angles reveal about their technique
-2. **Key Observations** - 2-3 specific biomechanical insights
-3. **Recommendations** - Practical tips to improve based on the measurements
-4. **Positive Reinforcement** - Highlight what they're doing well
+    Your coaching style is:
+    - Professional but accessible to athletes of all levels
+    - Grounded in biomechanical data: joint angles, posture, balance, and movement patterns
+    - Positive, constructive, and actionable
+    - Focused on {focus_areas}
 
-IMPORTANT GUIDELINES:
-- DO NOT mention "fallback analysis", "temporary feedback", or "model under training"
-- DO NOT apologize for limitations or explain what you cannot detect
-- DO focus on what you CAN analyze: joint angles, posture, balance, movement patterns
-- DO provide actionable coaching based on the biomechanical data
-- Write as if this is a complete and professional analysis
+    You have analyzed the athlete using full-body pose estimation (keypoints only).
+    No video frame classification was performed — your feedback is derived entirely from joint-angle statistics.
 
-Keep your response concise but comprehensive (max 350 words)."""
-        
-        human_template = """Here's the biomechanical analysis from full-body pose tracking:
+    STRICT GUIDELINES:
+    - NEVER mention "fallback analysis", "temporary feedback", or "model limitations"
+    - NEVER apologize for what you cannot detect
+    - ALWAYS ground observations in the provided angle data
+    - Structure your response EXACTLY in this Markdown format:
 
-Sport: {sport_type}
-Frames Analyzed: {frames_analyzed}
+    # {emoji} {sport_label} Performance Analysis
 
-{analysis_summary}
+    ## 1. Movement Assessment
+    *What the joint angles reveal about overall technique and efficiency*
 
-Please provide your professional biomechanical coaching feedback."""
-        
+    ## 2. Key Biomechanical Observations
+    - Observation 1
+    - Observation 2
+    - Observation 3
+
+    ## 3. Recommendations
+    - Recommendation 1
+    - Recommendation 2
+    - Recommendation 3
+
+    ## 4. Strengths 💪
+    *What the athlete is executing well*
+
+    ---
+    *Analysis based on {{frames_analyzed}} frames of full-body pose tracking.*
+
+    Keep the total response under 350 words."""
+
+        human_template = """\
+    ## Biomechanical Keypoint Analysis
+    Sport: {sport_type}
+    Frames Analyzed: {frames_analyzed}
+
+    {analysis_summary}
+
+    Please provide your professional coaching feedback in the specified Markdown format."""
+
+        return self._invoke_llm(system_template, human_template, {
+            "sport_type": sport_label,
+            "frames_analyzed": frames_analyzed,
+            "analysis_summary": analysis_summary,
+        })
+
+
+    def _invoke_llm(self, system_template: str, human_template: str, variables: Dict) -> str:
+        """Shared LLM invocation with error fallback."""
         system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-        
-        chat_prompt = ChatPromptTemplate.from_messages([
-            system_message_prompt,
-            human_message_prompt
-        ])
-        
+        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+
         try:
-            messages = chat_prompt.format_messages(
-                sport_type=sport_type.upper(),
-                frames_analyzed=frames_analyzed,
-                analysis_summary=analysis_summary
-            )
-            
+            messages = chat_prompt.format_messages(**variables)
             response = self.llm.invoke(messages)
             return response.content
-            
         except Exception as e:
             logger.error(f"LLM feedback generation failed: {str(e)}")
-            # Fallback to basic feedback if LLM fails
+            sport_type = variables.get("sport_type", "unknown")
+            frames_analyzed = variables.get("frames_analyzed", 0)
+            angle_stats = {}  # basic fallback won't have stats here; keep signature compatible
             return self._generate_basic_fallback_feedback(sport_type, angle_stats, frames_analyzed)
     
     def _prepare_biomechanical_summary(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
-        """Prepare biomechanical analysis summary for LLM."""
-        
-        summary_parts = []
-        
-        # Knee analysis
-        left_knee = angle_stats.get('left_knee_angles')
-        right_knee = angle_stats.get('right_knee_angles')
-        if left_knee or right_knee:
-            summary_parts.append("**KNEE BIOMECHANICS:**")
-            if left_knee:
-                summary_parts.append(f"- Left Knee: Mean={left_knee['mean']}°, Range={left_knee['min']}-{left_knee['max']}°, Consistency (std)={left_knee['std']}°")
-            if right_knee:
-                summary_parts.append(f"- Right Knee: Mean={right_knee['mean']}°, Range={right_knee['min']}-{right_knee['max']}°, Consistency (std)={right_knee['std']}°")
-        
-        # Hip analysis
-        left_hip = angle_stats.get('left_hip_angles')
-        right_hip = angle_stats.get('right_hip_angles')
-        if left_hip or right_hip:
-            summary_parts.append("\n**HIP BIOMECHANICS:**")
-            if left_hip:
-                summary_parts.append(f"- Left Hip: Mean={left_hip['mean']}°, Range={left_hip['min']}-{left_hip['max']}°, Consistency={left_hip['std']}°")
-            if right_hip:
-                summary_parts.append(f"- Right Hip: Mean={right_hip['mean']}°, Range={right_hip['min']}-{right_hip['max']}°, Consistency={right_hip['std']}°")
-        
-        # Elbow/arm analysis
-        left_elbow = angle_stats.get('left_elbow_angles')
-        right_elbow = angle_stats.get('right_elbow_angles')
-        if left_elbow or right_elbow:
-            summary_parts.append("\n**ARM BIOMECHANICS:**")
-            if left_elbow:
-                summary_parts.append(f"- Left Elbow: Mean={left_elbow['mean']}°, Consistency={left_elbow['std']}°")
-            if right_elbow:
-                summary_parts.append(f"- Right Elbow: Mean={right_elbow['mean']}°, Consistency={right_elbow['std']}°")
-        
-        # Shoulder analysis
-        left_shoulder = angle_stats.get('left_shoulder_angles')
-        right_shoulder = angle_stats.get('right_shoulder_angles')
-        if left_shoulder or right_shoulder:
-            summary_parts.append("\n**SHOULDER BIOMECHANICS:**")
-            if left_shoulder:
-                summary_parts.append(f"- Left Shoulder: Mean={left_shoulder['mean']}°, Consistency={left_shoulder['std']}°")
-            if right_shoulder:
-                summary_parts.append(f"- Right Shoulder: Mean={right_shoulder['mean']}°, Consistency={right_shoulder['std']}°")
-        
-        # Spine/posture analysis
+        """Prepare biomechanical analysis summary in Markdown format for LLM."""
+
+        parts = []
+
+        def _fmt(label: str, stats: Dict, include_range: bool = True) -> str:
+            line = f"- **{label}:** Mean = {stats['mean']}°"
+            if include_range:
+                line += f", Range = {stats['min']}°–{stats['max']}°"
+            line += f", Consistency (σ) = {stats['std']}°"
+            return line
+
+        # Knees
+        lk = angle_stats.get('left_knee_angles')
+        rk = angle_stats.get('right_knee_angles')
+        if lk or rk:
+            parts.append("### Knee Biomechanics")
+            if lk: parts.append(_fmt("Left Knee", lk))
+            if rk: parts.append(_fmt("Right Knee", rk))
+
+        # Hips
+        lh = angle_stats.get('left_hip_angles')
+        rh = angle_stats.get('right_hip_angles')
+        if lh or rh:
+            parts.append("\n### Hip Biomechanics")
+            if lh: parts.append(_fmt("Left Hip", lh))
+            if rh: parts.append(_fmt("Right Hip", rh))
+
+        # Elbows
+        le = angle_stats.get('left_elbow_angles')
+        re = angle_stats.get('right_elbow_angles')
+        if le or re:
+            parts.append("\n### Arm Biomechanics")
+            if le: parts.append(_fmt("Left Elbow", le, include_range=False))
+            if re: parts.append(_fmt("Right Elbow", re, include_range=False))
+
+        # Shoulders
+        ls = angle_stats.get('left_shoulder_angles')
+        rs = angle_stats.get('right_shoulder_angles')
+        if ls or rs:
+            parts.append("\n### Shoulder Biomechanics")
+            if ls: parts.append(_fmt("Left Shoulder", ls, include_range=False))
+            if rs: parts.append(_fmt("Right Shoulder", rs, include_range=False))
+
+        # Spine
         spine = angle_stats.get('spine_angles')
         if spine:
-            summary_parts.append("\n**POSTURE ANALYSIS:**")
-            summary_parts.append(f"- Spine Deviation from Vertical: Mean={spine['mean']}°, Range={spine['min']}-{spine['max']}°")
+            parts.append("\n### Posture Analysis")
+            parts.append(f"- **Spine Deviation from Vertical:** Mean = {spine['mean']}°, Range = {spine['min']}°–{spine['max']}°")
             if spine['mean'] > 15:
-                summary_parts.append("  Note: Significant torso lean detected")
+                parts.append("  > ⚠️ Significant torso lean detected throughout the session.")
             elif spine['mean'] < 5:
-                summary_parts.append("  Note: Excellent upright posture maintained")
+                parts.append("  > ✅ Excellent upright posture maintained.")
+
+        return "\n".join(parts) if parts else "_No joint-angle data was available for analysis._"
+    
+#     def _generate_llm_fallback_feedback(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
+#         """
+#         Generate feedback using LLM based on biomechanical analysis.
+#         Uses professional coaching language without mentioning "fallback" or technical limitations.
+#         """
         
-        return "\n".join(summary_parts)
+#         # Prepare analysis summary for LLM
+#         analysis_summary = self._prepare_biomechanical_summary(sport_type, angle_stats, frames_analyzed)
+        
+#         # Generate LLM feedback
+#         system_template = """You are a professional sports biomechanics coach and movement analyst with expertise across multiple sports.
+
+# Your coaching style is:
+# - Professional but accessible to athletes of all levels
+# - Focused on practical, biomechanical insights from body movement analysis
+# - Positive and constructive
+# - Clear about what the analysis reveals
+
+# You have analyzed an athlete's {sport_type} performance using advanced pose estimation technology that tracks full body movement and calculates joint angles throughout their motion.
+
+# Based on the biomechanical angle analysis provided, give coaching feedback that includes:
+# 1. **Movement Assessment** - What the joint angles reveal about their technique
+# 2. **Key Observations** - 2-3 specific biomechanical insights
+# 3. **Recommendations** - Practical tips to improve based on the measurements
+# 4. **Positive Reinforcement** - Highlight what they're doing well
+
+# IMPORTANT GUIDELINES:
+# - DO NOT mention "fallback analysis", "temporary feedback", or "model under training"
+# - DO NOT apologize for limitations or explain what you cannot detect
+# - DO focus on what you CAN analyze: joint angles, posture, balance, movement patterns
+# - DO provide actionable coaching based on the biomechanical data
+# - Write as if this is a complete and professional analysis
+
+# Keep your response concise but comprehensive (max 350 words)."""
+        
+#         human_template = """Here's the biomechanical analysis from full-body pose tracking:
+
+# Sport: {sport_type}
+# Frames Analyzed: {frames_analyzed}
+
+# {analysis_summary}
+
+# Please provide your professional biomechanical coaching feedback."""
+        
+#         system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
+#         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+        
+#         chat_prompt = ChatPromptTemplate.from_messages([
+#             system_message_prompt,
+#             human_message_prompt
+#         ])
+        
+#         try:
+#             messages = chat_prompt.format_messages(
+#                 sport_type=sport_type.upper(),
+#                 frames_analyzed=frames_analyzed,
+#                 analysis_summary=analysis_summary
+#             )
+            
+#             response = self.llm.invoke(messages)
+#             return response.content
+            
+#         except Exception as e:
+#             logger.error(f"LLM feedback generation failed: {str(e)}")
+#             # Fallback to basic feedback if LLM fails
+#             return self._generate_basic_fallback_feedback(sport_type, angle_stats, frames_analyzed)
+    
+    # def _prepare_biomechanical_summary(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
+    #     """Prepare biomechanical analysis summary for LLM."""
+        
+    #     summary_parts = []
+        
+    #     # Knee analysis
+    #     left_knee = angle_stats.get('left_knee_angles')
+    #     right_knee = angle_stats.get('right_knee_angles')
+    #     if left_knee or right_knee:
+    #         summary_parts.append("**KNEE BIOMECHANICS:**")
+    #         if left_knee:
+    #             summary_parts.append(f"- Left Knee: Mean={left_knee['mean']}°, Range={left_knee['min']}-{left_knee['max']}°, Consistency (std)={left_knee['std']}°")
+    #         if right_knee:
+    #             summary_parts.append(f"- Right Knee: Mean={right_knee['mean']}°, Range={right_knee['min']}-{right_knee['max']}°, Consistency (std)={right_knee['std']}°")
+        
+    #     # Hip analysis
+    #     left_hip = angle_stats.get('left_hip_angles')
+    #     right_hip = angle_stats.get('right_hip_angles')
+    #     if left_hip or right_hip:
+    #         summary_parts.append("\n**HIP BIOMECHANICS:**")
+    #         if left_hip:
+    #             summary_parts.append(f"- Left Hip: Mean={left_hip['mean']}°, Range={left_hip['min']}-{left_hip['max']}°, Consistency={left_hip['std']}°")
+    #         if right_hip:
+    #             summary_parts.append(f"- Right Hip: Mean={right_hip['mean']}°, Range={right_hip['min']}-{right_hip['max']}°, Consistency={right_hip['std']}°")
+        
+    #     # Elbow/arm analysis
+    #     left_elbow = angle_stats.get('left_elbow_angles')
+    #     right_elbow = angle_stats.get('right_elbow_angles')
+    #     if left_elbow or right_elbow:
+    #         summary_parts.append("\n**ARM BIOMECHANICS:**")
+    #         if left_elbow:
+    #             summary_parts.append(f"- Left Elbow: Mean={left_elbow['mean']}°, Consistency={left_elbow['std']}°")
+    #         if right_elbow:
+    #             summary_parts.append(f"- Right Elbow: Mean={right_elbow['mean']}°, Consistency={right_elbow['std']}°")
+        
+    #     # Shoulder analysis
+    #     left_shoulder = angle_stats.get('left_shoulder_angles')
+    #     right_shoulder = angle_stats.get('right_shoulder_angles')
+    #     if left_shoulder or right_shoulder:
+    #         summary_parts.append("\n**SHOULDER BIOMECHANICS:**")
+    #         if left_shoulder:
+    #             summary_parts.append(f"- Left Shoulder: Mean={left_shoulder['mean']}°, Consistency={left_shoulder['std']}°")
+    #         if right_shoulder:
+    #             summary_parts.append(f"- Right Shoulder: Mean={right_shoulder['mean']}°, Consistency={right_shoulder['std']}°")
+        
+    #     # Spine/posture analysis
+    #     spine = angle_stats.get('spine_angles')
+    #     if spine:
+    #         summary_parts.append("\n**POSTURE ANALYSIS:**")
+    #         summary_parts.append(f"- Spine Deviation from Vertical: Mean={spine['mean']}°, Range={spine['min']}-{spine['max']}°")
+    #         if spine['mean'] > 15:
+    #             summary_parts.append("  Note: Significant torso lean detected")
+    #         elif spine['mean'] < 5:
+    #             summary_parts.append("  Note: Excellent upright posture maintained")
+        
+    #     return "\n".join(summary_parts)
     
     def _generate_basic_fallback_feedback(self, sport_type: str, angle_stats: Dict, frames_analyzed: int) -> str:
         """Generate basic professional feedback if LLM fails (backup method)."""
